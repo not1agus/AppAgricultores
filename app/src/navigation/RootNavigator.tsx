@@ -15,6 +15,7 @@ import { EditCampanaScreen } from '@/screens/EditCampanaScreen';
 import { EditFincaScreen } from '@/screens/EditFincaScreen';
 import { EditParcelaScreen } from '@/screens/EditParcelaScreen';
 import { EditTransaccionScreen } from '@/screens/EditTransaccionScreen';
+import { FichaInspeccionScreen } from '@/screens/FichaInspeccionScreen';
 import { RentabilidadScreen } from '@/screens/RentabilidadScreen';
 import { FincaDetailScreen } from '@/screens/FincaDetailScreen';
 import { FincaMembersScreen } from '@/screens/FincaMembersScreen';
@@ -174,6 +175,11 @@ function MainNavigator(): JSX.Element {
         name="Rentabilidad"
         component={RentabilidadScreen}
         options={({ route }) => ({ title: `Rentabilidad · ${route.params.fincaName}` })}
+      />
+      <MainStack.Screen
+        name="FichaInspeccion"
+        component={FichaInspeccionScreen}
+        options={{ title: 'Ficha de inspección' }}
       />
       <MainStack.Screen
         name="Settings"

@@ -307,6 +307,15 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
       onPress: () => navigation.navigate('TicketsList', { fincaId }),
     },
     {
+      title: 'Ficha de inspección',
+      subtitle: 'Datos SIGPAC y fitosanitarios listos offline',
+      onPress: () =>
+        navigation.navigate('FichaInspeccion', {
+          fincaId,
+          fincaName: finca.name,
+        }),
+    },
+    {
       title: 'Miembros',
       subtitle: 'Invita trabajadores y gestiona permisos',
       onPress: () =>

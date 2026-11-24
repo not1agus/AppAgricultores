@@ -8,6 +8,7 @@ import { parcelasRoutes } from './modules/parcelas/parcelas.routes';
 import { sigpacRoutes } from './modules/sigpac/sigpac.routes';
 import { ticketsRoutes } from './modules/tickets/tickets.routes';
 import { transaccionesRoutes } from './modules/transacciones/transacciones.routes';
+import { weatherRoutes } from './modules/weather/weather.routes';
 
 export const apiRouter: Router = Router();
 
@@ -24,3 +25,4 @@ apiRouter.use('/campanas', campanasRoutes);
 apiRouter.use('/transacciones', transaccionesRoutes);
 apiRouter.use('/tickets', ticketsRoutes);
 apiRouter.use('/sigpac', sigpacRoutes);
+apiRouter.use('/weather', weatherRoutes);

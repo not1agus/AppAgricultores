@@ -15,6 +15,7 @@ import { OfflineBadge } from '@/components/OfflineBadge';
 import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
 import { ACTIVIDAD_TYPE_LABELS } from '@/services/actividades.service';
+import { AemetAlert, AlertLevel, weatherService } from '@/services/weather.service';
 import {
   aggregateStats,
   collectPendingTickets,
@@ -94,6 +95,8 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [weatherAlerts, setWeatherAlerts] = useState<AemetAlert[]>([]);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
     setError(null);
@@ -111,6 +114,31 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
     void load().finally(() => setLoading(false));
     return unsub;
   }, [load, navigation]);
+
+  // Weather alerts: loaded once on mount + on each focus. Errors are
+  // swallowed silently — a missing forecast is not a blocking failure.
+  useEffect(() => {
+    const loadAlerts = (): void => {
+      setWeatherLoading(true);
+      weatherService
+        .getAlerts()
+        .then((result) => {
+          // Only surface rojo/naranja on the home to avoid alert fatigue.
+          // Amarillo alerts are informational and can be many in autumn/winter.
+          const high = result.alerts.filter(
+            (a) => a.level === 'rojo' || a.level === 'naranja',
+          );
+          setWeatherAlerts(high.length > 0 ? high : result.alerts.slice(0, 3));
+        })
+        .catch(() => {
+          // Network failure — show nothing, don't block the user.
+        })
+        .finally(() => setWeatherLoading(false));
+    };
+    const unsub = navigation.addListener('focus', loadAlerts);
+    loadAlerts();
+    return unsub;
+  }, [navigation]);
 
   // Stats fan-out: one fetchFincaStats per finca in parallel.
   // Each resolves into its own slot so the KPI card updates as data arrives.
@@ -292,6 +320,16 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <OfflineBadge onPressDetail={() => navigation.navigate('Settings')} />
+
+        {/* Weather alerts — only shown when there are active AEMET alerts */}
+        {weatherLoading ? null : weatherAlerts.length > 0 ? (
+          <View style={styles.weatherSection}>
+            <Text style={styles.weatherTitle}>Alertas meteorológicas</Text>
+            {weatherAlerts.map((alert) => (
+              <WeatherAlertRow key={alert.id} alert={alert} />
+            ))}
+          </View>
+        ) : null}
 
         {/* KPI summary card — only when there is at least one finca */}
         {fincas.length > 0 ? (
@@ -563,6 +601,31 @@ function ActividadRow({
   );
 }
 
+const ALERT_COLORS: Record<AlertLevel, string> = {
+  rojo: '#c0392b',
+  naranja: '#d35400',
+  amarillo: '#d4ac0d',
+};
+
+function WeatherAlertRow({ alert }: { alert: AemetAlert }): JSX.Element {
+  const color = alert.level ? ALERT_COLORS[alert.level] : theme.colors.textMuted;
+  const levelLabel = alert.level
+    ? alert.level.charAt(0).toUpperCase() + alert.level.slice(1)
+    : 'Aviso';
+  return (
+    <View style={[styles.weatherRow, { borderLeftColor: color }]}>
+      <View style={styles.weatherRowMain}>
+        <Text style={[styles.weatherLevel, { color }]}>{levelLabel}</Text>
+        <Text style={styles.weatherText} numberOfLines={2}>
+          {alert.phenomenon
+            ? `${alert.phenomenon.charAt(0).toUpperCase() + alert.phenomenon.slice(1)}${alert.area ? ` · ${alert.area}` : ''}`
+            : alert.title}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function KpiCell({
   label,
   value,
@@ -702,5 +765,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: theme.spacing.lg,
     fontSize: 14,
+  },
+  weatherSection: {
+    marginBottom: theme.spacing.md,
+  },
+  weatherTitle: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '700',
+    marginBottom: theme.spacing.xs,
+  },
+  weatherRow: {
+    borderLeftWidth: 3,
+    paddingLeft: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+  },
+  weatherRowMain: { flex: 1 },
+  weatherLevel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  weatherText: {
+    color: theme.colors.text,
+    fontSize: 13,
+    marginTop: 2,
   },
 });

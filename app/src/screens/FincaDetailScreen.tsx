@@ -21,7 +21,8 @@ import {
   fetchFincaFinanceStats,
   filterFinanceStatsYearToDate,
 } from '@/services/fincaFinanceStats.service';
-import { Parcela, parcelasService } from '@/services/parcelas.service';
+import { GeoJsonPolygon, Parcela, parcelasService } from '@/services/parcelas.service';
+import { WeatherForecast, weatherService } from '@/services/weather.service';
 import {
   PlazoStatus,
   loadActivePlazosForFinca,
@@ -53,6 +54,33 @@ function fmtEur(n: number): string {
   })} €`;
 }
 
+function computeCentroid(
+  geometry: GeoJsonPolygon,
+): { lat: number; lon: number } | null {
+  const ring =
+    geometry.type === 'Polygon'
+      ? (geometry.coordinates as number[][][])[0]
+      : (geometry.coordinates as number[][][][])[0]?.[0];
+  if (!ring || ring.length === 0) return null;
+  let sumLon = 0;
+  let sumLat = 0;
+  for (const point of ring) {
+    sumLon += point[0] ?? 0;
+    sumLat += point[1] ?? 0;
+  }
+  return { lon: sumLon / ring.length, lat: sumLat / ring.length };
+}
+
+const DAY_ABBR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+function fmtForecastDay(dateStr: string): { day: string; date: string } {
+  const d = new Date(`${dateStr}T12:00:00`);
+  return {
+    day: DAY_ABBR[d.getDay()] ?? '',
+    date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+  };
+}
+
 export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
   const { fincaId } = route.params;
 
@@ -72,6 +100,8 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
   // can't load we just skip the map; the user still has full access to the
   // Parcelas section card below.
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [forecast, setForecast] = useState<WeatherForecast | null>(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
 
   // Map<parcelaId, PlazoStatus> for parcelas with an active plazo de
   // seguridad. Empty map = nothing to surface. We never render an error
@@ -110,6 +140,18 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
     try {
       const list = await parcelasService.listByFinca(fincaId);
       setParcelas(list);
+      const withGeo = list.find((p) => p.geometry !== null);
+      if (withGeo?.geometry) {
+        const centroid = computeCentroid(withGeo.geometry);
+        if (centroid) {
+          setForecastLoading(true);
+          weatherService
+            .getForecast(centroid.lat, centroid.lon)
+            .then((f) => { setForecast(f); })
+            .catch(() => { /* silent: forecast is a convenience, not critical */ })
+            .finally(() => { setForecastLoading(false); });
+        }
+      }
     } catch {
       // Silent: the map is a glance helper, not the primary nav. The
       // Parcelas section card below remains the source of truth.
@@ -322,6 +364,48 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
 
         {mapShapes ? (
           <ParcelaMap shapes={mapShapes} height={200} />
+        ) : null}
+
+        {forecastLoading ? (
+          <View style={styles.forecastLoading}>
+            <ActivityIndicator color={theme.colors.primary} size="small" />
+          </View>
+        ) : forecast && forecast.daily.length > 0 ? (
+          <>
+            <Text style={styles.sectionLabel}>Previsión 7 días</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.forecastRow}
+            >
+              {forecast.daily.map((day) => {
+                const { day: dayName, date } = fmtForecastDay(day.date);
+                return (
+                  <View key={day.date} style={styles.forecastCard}>
+                    <Text style={styles.forecastDay}>{dayName}</Text>
+                    <Text style={styles.forecastDate}>{date}</Text>
+                    {day.frostRisk ? (
+                      <Text style={styles.forecastFrost}>❄</Text>
+                    ) : null}
+                    <Text style={styles.forecastTemp}>
+                      {Math.round(day.tempMaxC)}° / {Math.round(day.tempMinC)}°
+                    </Text>
+                    <Text style={styles.forecastPrecip}>
+                      {day.precipitationMm.toFixed(1)} mm
+                    </Text>
+                    <Text style={styles.forecastWind}>
+                      {Math.round(day.windSpeedMaxKmh)} km/h
+                    </Text>
+                    {day.et0Mm !== null ? (
+                      <Text style={styles.forecastEt0}>
+                        ET₀ {day.et0Mm.toFixed(1)}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </>
         ) : null}
 
         <Text style={styles.sectionLabel}>Resumen financiero</Text>
@@ -615,5 +699,58 @@ const styles = StyleSheet.create({
     color: '#7A5C18',
     fontSize: 12,
     marginTop: 4,
+  },
+  forecastLoading: {
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+  },
+  forecastRow: {
+    paddingBottom: theme.spacing.sm,
+  },
+  forecastCard: {
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
+    marginRight: theme.spacing.xs,
+    minWidth: 72,
+  },
+  forecastDay: {
+    fontWeight: '700',
+    fontSize: 12,
+    color: theme.colors.text,
+    textTransform: 'uppercase',
+  },
+  forecastDate: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginBottom: 4,
+  },
+  forecastFrost: {
+    fontSize: 14,
+    marginBottom: 2,
+    color: '#4A90D9',
+  },
+  forecastTemp: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  forecastPrecip: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    marginTop: 2,
+  },
+  forecastWind: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  forecastEt0: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+    fontStyle: 'italic',
   },
 });

@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "AppAgricultores",
-    "slug": "app-agricultores",
+    "name": "CampoLivo",
+    "slug": "campolivo",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "scheme": "appagricultores",
+    "scheme": "campolivo",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.appagricultores.app"
+      "bundleIdentifier": "com.campolivo.app"
     },
     "android": {
-      "package": "com.appagricultores.app"
+      "package": "com.campolivo.app"
     },
     "web": {
       "bundler": "metro"

@@ -43,7 +43,7 @@ export function LoginScreen(): JSX.Element {
         <View style={styles.brandMark}>
           <Text style={styles.brandLetter}>O</Text>
         </View>
-        <Text style={styles.title}>Olivar</Text>
+        <Text style={styles.title}>CampoLivo</Text>
         <Text style={styles.subtitle}>Cuaderno de campo y almazara</Text>
       </View>
 

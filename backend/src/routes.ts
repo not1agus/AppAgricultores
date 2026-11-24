@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { aiRoutes } from './modules/ai/ai.routes';
 import { actividadesRoutes } from './modules/actividades/actividades.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { campanasRoutes } from './modules/campanas/campanas.routes';
@@ -26,3 +27,4 @@ apiRouter.use('/transacciones', transaccionesRoutes);
 apiRouter.use('/tickets', ticketsRoutes);
 apiRouter.use('/sigpac', sigpacRoutes);
 apiRouter.use('/weather', weatherRoutes);
+apiRouter.use('/ai', aiRoutes);

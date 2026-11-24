@@ -15,6 +15,7 @@ import { EditCampanaScreen } from '@/screens/EditCampanaScreen';
 import { EditFincaScreen } from '@/screens/EditFincaScreen';
 import { EditParcelaScreen } from '@/screens/EditParcelaScreen';
 import { EditTransaccionScreen } from '@/screens/EditTransaccionScreen';
+import { AiAssistantScreen } from '@/screens/AiAssistantScreen';
 import { FichaInspeccionScreen } from '@/screens/FichaInspeccionScreen';
 import { RentabilidadScreen } from '@/screens/RentabilidadScreen';
 import { FincaDetailScreen } from '@/screens/FincaDetailScreen';
@@ -180,6 +181,11 @@ function MainNavigator(): JSX.Element {
         name="FichaInspeccion"
         component={FichaInspeccionScreen}
         options={{ title: 'Ficha de inspección' }}
+      />
+      <MainStack.Screen
+        name="AiAssistant"
+        component={AiAssistantScreen}
+        options={({ route }) => ({ title: `Asistente · ${route.params.fincaName}` })}
       />
       <MainStack.Screen
         name="Settings"

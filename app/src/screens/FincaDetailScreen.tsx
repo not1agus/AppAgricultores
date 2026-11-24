@@ -316,6 +316,15 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
         }),
     },
     {
+      title: 'Asistente IA',
+      subtitle: 'Consulta normativa CUE y datos de tu finca',
+      onPress: () =>
+        navigation.navigate('AiAssistant', {
+          fincaId,
+          fincaName: finca.name,
+        }),
+    },
+    {
       title: 'Miembros',
       subtitle: 'Invita trabajadores y gestiona permisos',
       onPress: () =>

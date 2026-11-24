@@ -12,6 +12,9 @@ const envSchema = z.object({
   // status='manual' and OCR endpoints return 503.
   OCR_SERVICE_URL: z.string().url().optional(),
   OCR_SERVICE_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  // Gemini Flash 2.0 for the AI assistant. Optional: when unset all /ai
+  // endpoints return 503 with a clear message.
+  GEMINI_API_KEY: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -31,6 +31,7 @@ import {
 import { Campana, campanasService } from '@/services/campanas.service';
 import { OfflineQueuedError } from '@/services/mutationQueue.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
+import { scheduleDeadlineNotification } from '@/services/notifications.service';
 import { uploadActividadImage } from '@/services/storage.service';
 import { theme } from '@/theme';
 
@@ -225,6 +226,16 @@ export function CreateActividadScreen({
         ...(fitosanitarioPayload ? { fitosanitario: fitosanitarioPayload } : {}),
         ...(campanaId ? { campanaId } : {}),
       });
+      if (type === 'tratamiento_fitosanitario' && fitosanitarioPayload) {
+        const parcelaName = parcelas.find((p) => p.id === parcelaId)?.name ?? '';
+        void scheduleDeadlineNotification(
+          created.id,
+          fitosanitarioPayload.productoComercial,
+          parcelaName,
+          fitosanitarioPayload.plazoSeguridadDias,
+          performedAt,
+        );
+      }
       navigation.replace('ActividadDetail', {
         actividadId: created.id,
         fincaId,

@@ -29,5 +29,6 @@ export type MainStackParamList = {
   EditTransaccion: { transaccionId: string };
   Rentabilidad: { fincaId: string; fincaName: string };
   FichaInspeccion: { fincaId: string; fincaName: string };
+  AiAssistant: { fincaId: string; fincaName: string };
   Settings: undefined;
 };

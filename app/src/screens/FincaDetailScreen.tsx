@@ -515,6 +515,20 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
                 ver todas.
               </Text>
             ) : null}
+
+            <Pressable
+              onPress={() =>
+                navigation.navigate('Rentabilidad', {
+                  fincaId,
+                  fincaName: finca.name,
+                })
+              }
+              style={styles.rentabilidadLink}
+            >
+              <Text style={styles.rentabilidadLinkText}>
+                Ver análisis de rentabilidad →
+              </Text>
+            </Pressable>
           </>
         ) : null}
 
@@ -661,6 +675,16 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
+  },
+  rentabilidadLink: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  rentabilidadLinkText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   muted: {
     color: theme.colors.textMuted,

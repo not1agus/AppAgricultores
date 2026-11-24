@@ -27,5 +27,6 @@ export type MainStackParamList = {
   EditActividad: { actividadId: string; fincaId: string };
   CreateTransaccion: { campanaId: string };
   EditTransaccion: { transaccionId: string };
+  Rentabilidad: { fincaId: string; fincaName: string };
   Settings: undefined;
 };

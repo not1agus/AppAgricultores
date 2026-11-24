@@ -15,6 +15,7 @@ import { EditCampanaScreen } from '@/screens/EditCampanaScreen';
 import { EditFincaScreen } from '@/screens/EditFincaScreen';
 import { EditParcelaScreen } from '@/screens/EditParcelaScreen';
 import { EditTransaccionScreen } from '@/screens/EditTransaccionScreen';
+import { RentabilidadScreen } from '@/screens/RentabilidadScreen';
 import { FincaDetailScreen } from '@/screens/FincaDetailScreen';
 import { FincaMembersScreen } from '@/screens/FincaMembersScreen';
 import { FincasListScreen } from '@/screens/FincasListScreen';
@@ -168,6 +169,11 @@ function MainNavigator(): JSX.Element {
         name="EditTransaccion"
         component={EditTransaccionScreen}
         options={{ title: 'Editar movimiento', presentation: 'modal' }}
+      />
+      <MainStack.Screen
+        name="Rentabilidad"
+        component={RentabilidadScreen}
+        options={({ route }) => ({ title: `Rentabilidad · ${route.params.fincaName}` })}
       />
       <MainStack.Screen
         name="Settings"

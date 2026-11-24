@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "AppAgricultores",
+    "slug": "app-agricultores",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "appagricultores",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.appagricultores.app"
+    },
+    "android": {
+      "package": "com.appagricultores.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceso a tus fotos para escanear tickets de almazara.",
+          "cameraPermission": "La app necesita acceso a la cámara para capturar tickets de almazara."
+        }
+      ]
+    ]
+  }
+}

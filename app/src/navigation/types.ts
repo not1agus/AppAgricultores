@@ -4,6 +4,7 @@ export type AuthStackParamList = {
 };
 
 export type MainStackParamList = {
+  Home: undefined;
   FincasList: undefined;
   CreateFinca: undefined;
   FincaDetail: { fincaId: string; fincaName: string };

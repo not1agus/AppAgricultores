@@ -18,6 +18,7 @@ import { EditTransaccionScreen } from '@/screens/EditTransaccionScreen';
 import { FincaDetailScreen } from '@/screens/FincaDetailScreen';
 import { FincaMembersScreen } from '@/screens/FincaMembersScreen';
 import { FincasListScreen } from '@/screens/FincasListScreen';
+import { HomeScreen } from '@/screens/HomeScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { ParcelaDetailScreen } from '@/screens/ParcelaDetailScreen';
 import { ParcelasListScreen } from '@/screens/ParcelasListScreen';
@@ -54,9 +55,14 @@ function MainNavigator(): JSX.Element {
       }}
     >
       <MainStack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ headerShown: false }}
+      />
+      <MainStack.Screen
         name="FincasList"
         component={FincasListScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Mis fincas' }}
       />
       <MainStack.Screen
         name="CreateFinca"

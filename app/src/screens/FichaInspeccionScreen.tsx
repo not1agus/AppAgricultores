@@ -3,6 +3,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -18,6 +20,7 @@ import {
   actividadesService,
 } from '@/services/actividades.service';
 import { Campana, campanasService } from '@/services/campanas.service';
+import { exportCuadernoPdf } from '@/services/cuadernoExport.pdf';
 import { Finca, fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';
@@ -101,6 +104,7 @@ export function FichaInspeccionScreen({ route }: Props): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async (silent = false): Promise<void> => {
     if (!silent) setError(null);
@@ -153,6 +157,27 @@ export function FichaInspeccionScreen({ route }: Props): JSX.Element {
     setRefreshing(false);
   }
 
+  async function onExportPdf(): Promise<void> {
+    if (!data) return;
+    setExporting(true);
+    try {
+      const activaCampana = data.campanas.find((c) => c.endDate === null) ?? null;
+      await exportCuadernoPdf(
+        data.finca,
+        data.parcelas,
+        activaCampana,
+        data.actividades,
+      );
+    } catch (err) {
+      Alert.alert(
+        'Error al exportar',
+        err instanceof Error ? err.message : 'No se pudo generar el PDF.',
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading && !data) {
     return (
       <Screen>
@@ -199,14 +224,27 @@ export function FichaInspeccionScreen({ route }: Props): JSX.Element {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* ── Status badge ── */}
-        <View style={styles.statusRow}>
-          <View style={[styles.statusDot, fromCache ? styles.dotOffline : styles.dotOnline]} />
-          <Text style={styles.statusText}>
-            {fromCache
-              ? `Datos guardados · actualizado ${fmtCacheAge(data.cachedAt)}`
-              : `Actualizado ahora · ${fmtDate(data.cachedAt)}`}
-          </Text>
+        {/* ── Status badge + export button ── */}
+        <View style={styles.topRow}>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, fromCache ? styles.dotOffline : styles.dotOnline]} />
+            <Text style={styles.statusText}>
+              {fromCache
+                ? `Guardado · ${fmtCacheAge(data.cachedAt)}`
+                : `Actualizado ahora`}
+            </Text>
+          </View>
+          <Pressable
+            onPress={onExportPdf}
+            disabled={exporting}
+            style={[styles.exportBtn, exporting && styles.exportBtnDisabled]}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={theme.colors.primaryText} />
+            ) : (
+              <Text style={styles.exportBtnText}>Exportar PDF CUE</Text>
+            )}
+          </Pressable>
         </View>
 
         {/* ── Finca ── */}
@@ -374,10 +412,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    flex: 1,
   },
   statusDot: {
     width: 8,
@@ -388,6 +432,20 @@ const styles = StyleSheet.create({
   dotOnline: { backgroundColor: theme.colors.primary },
   dotOffline: { backgroundColor: '#f59e0b' },
   statusText: { fontSize: 12, color: theme.colors.textMuted },
+  exportBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 7,
+    borderRadius: 8,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  exportBtnDisabled: { opacity: 0.6 },
+  exportBtnText: {
+    color: theme.colors.primaryText,
+    fontSize: 13,
+    fontWeight: '600',
+  },
 
   sectionTitle: {
     fontSize: 13,

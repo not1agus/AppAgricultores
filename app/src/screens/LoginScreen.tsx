@@ -40,8 +40,11 @@ export function LoginScreen(): JSX.Element {
   return (
     <Screen>
       <View style={styles.header}>
+        <View style={styles.brandMark}>
+          <Text style={styles.brandLetter}>O</Text>
+        </View>
         <Text style={styles.title}>Olivar</Text>
-        <Text style={styles.subtitle}>Gestión de finca</Text>
+        <Text style={styles.subtitle}>Cuaderno de campo y almazara</Text>
       </View>
 
       <TextField
@@ -89,18 +92,35 @@ export function LoginScreen(): JSX.Element {
 
 const styles = StyleSheet.create({
   header: {
-    marginTop: theme.spacing.xl,
+    marginTop: theme.spacing.xl * 2,
     marginBottom: theme.spacing.xl,
+    alignItems: 'center',
+  },
+  brandMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  brandLetter: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: theme.colors.primaryText,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 34,
+    fontWeight: '800',
     color: theme.colors.text,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
+    textAlign: 'center',
   },
   error: {
     color: theme.colors.danger,

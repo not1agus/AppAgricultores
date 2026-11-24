@@ -19,6 +19,7 @@ import { StatusPill } from '@/components/StatusPill';
 import type { MainStackParamList } from '@/navigation/types';
 import { Ticket, ticketsService } from '@/services/tickets.service';
 import { theme } from '@/theme';
+import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TicketsList'>;
 
@@ -66,7 +67,7 @@ function summaryLine(ticket: Ticket): string {
   const fields = ticket.corrected ?? ticket.parsed ?? {};
   const parts: string[] = [];
   if (fields.almazara) parts.push(fields.almazara);
-  if (fields.fecha) parts.push(fields.fecha);
+  if (fields.fecha) parts.push(fmtDate(fields.fecha));
   if (fields.totalEur !== null && fields.totalEur !== undefined) {
     parts.push(`${fields.totalEur.toFixed(2)} €`);
   }

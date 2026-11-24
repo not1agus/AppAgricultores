@@ -27,6 +27,7 @@ import { exportActividadesCsv } from '@/services/cuadernoExport.service';
 import { fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';
+import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ActividadesList'>;
 
@@ -442,7 +443,7 @@ export function ActividadesListScreen({
                 <Text style={styles.itemTitle}>
                   {ACTIVIDAD_TYPE_LABELS[item.type]}
                 </Text>
-                <Text style={styles.itemDate}>{item.performedAt}</Text>
+                <Text style={styles.itemDate}>{fmtDate(item.performedAt)}</Text>
               </View>
               <Text style={styles.itemMeta}>
                 {parcela?.name ?? 'Parcela desconocida'}

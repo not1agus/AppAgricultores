@@ -16,6 +16,7 @@ export interface TicketFields {
   numeroTicket?: string | null;
   fecha?: string | null;
   kgAceituna?: number | null;
+  kgAceite?: number | null;
   termino?: string | null;
   poligono?: string | null;
   parcela?: string | null;

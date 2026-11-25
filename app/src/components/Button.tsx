@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,7 +14,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost';
   style?: ViewStyle;
 }
 
@@ -26,25 +27,74 @@ export function Button({
   style,
 }: ButtonProps): JSX.Element {
   const isDisabled = disabled || loading;
-  const base = variant === 'primary' ? styles.primary : styles.ghost;
-  const label = variant === 'primary' ? styles.primaryLabel : styles.ghostLabel;
 
+  if (variant === 'primary') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.base,
+          pressed && !isDisabled && styles.pressed,
+          isDisabled && styles.disabled,
+          style,
+        ]}
+      >
+        <LinearGradient
+          colors={[theme.colors.primary, theme.colors.primaryContainer]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.primaryLabel}>{title}</Text>
+          )}
+        </LinearGradient>
+      </Pressable>
+    );
+  }
+
+  if (variant === 'secondary') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.base,
+          styles.secondary,
+          pressed && !isDisabled && styles.pressed,
+          isDisabled && styles.disabled,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={theme.colors.secondaryText} />
+        ) : (
+          <Text style={styles.secondaryLabel}>{title}</Text>
+        )}
+      </Pressable>
+    );
+  }
+
+  // ghost
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
-        base,
+        styles.ghost,
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#fff' : theme.colors.primary} />
+        <ActivityIndicator color={theme.colors.primary} />
       ) : (
-        <Text style={label}>{title}</Text>
+        <Text style={styles.ghostLabel}>{title}</Text>
       )}
     </Pressable>
   );
@@ -52,34 +102,54 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
-    borderRadius: theme.radius.sm,
+    height: 56,                     // 56px — large touch target for field use
+    borderRadius: theme.radius.pill,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
+  },
+  gradient: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.lg,
   },
   primary: {
     backgroundColor: theme.colors.primary,
+  },
+  secondary: {
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.spacing.lg,
   },
   ghost: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.lg,
   },
   primaryLabel: {
     color: theme.colors.primaryText,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: theme.fontFamily.bodyMedium,
+  },
+  secondaryLabel: {
+    color: theme.colors.secondaryText,
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: theme.fontFamily.bodyMedium,
   },
   ghostLabel: {
     color: theme.colors.text,
     fontSize: 16,
     fontWeight: '500',
+    fontFamily: theme.fontFamily.body,
   },
   pressed: {
     opacity: 0.85,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
 });

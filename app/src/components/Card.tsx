@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, ViewStyle } from 'react-native';
 
 import { theme } from '@/theme';
 
@@ -27,13 +27,25 @@ export function Card({ children, onPress, style }: CardProps): JSX.Element {
   );
 }
 
+// DESIGN.md: cards use surface_container_lowest (#fff) on a surface base.
+// Boundaries come from the background color shift, not from 1px borders.
+// Ambient shadow: tinted with primary at 8% opacity (canopy light effect).
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   pressed: {
     opacity: 0.85,

@@ -1,17 +1,23 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Edge, SafeAreaView } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
 
 interface ScreenProps {
   children: ReactNode;
   style?: ViewStyle;
+  /** Safe-area edges to inset. Defaults to top + bottom. */
+  edges?: Edge[];
 }
 
-export function Screen({ children, style }: ScreenProps): JSX.Element {
+export function Screen({
+  children,
+  style,
+  edges = ['top', 'bottom'],
+}: ScreenProps): JSX.Element {
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={edges}>
       <View style={[styles.inner, style]}>{children}</View>
     </SafeAreaView>
   );

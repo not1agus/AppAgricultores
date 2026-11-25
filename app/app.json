@@ -24,6 +24,12 @@
           "photosPermission": "La app necesita acceso a tus fotos para escanear tickets de almazara.",
           "cameraPermission": "La app necesita acceso a la cámara para capturar tickets de almazara."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#3A7C4F"
+        }
       ]
     ]
   }

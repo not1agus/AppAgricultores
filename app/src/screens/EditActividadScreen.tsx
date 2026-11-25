@@ -32,6 +32,10 @@ import {
 } from '@/services/actividades.service';
 import { Campana, campanasService } from '@/services/campanas.service';
 import { OfflineQueuedError } from '@/services/mutationQueue.service';
+import {
+  cancelDeadlineNotification,
+  scheduleDeadlineNotification,
+} from '@/services/notifications.service';
 import { parcelasService } from '@/services/parcelas.service';
 import { uploadActividadImage } from '@/services/storage.service';
 import { theme } from '@/theme';
@@ -103,6 +107,10 @@ export function EditActividadScreen({
   );
   const [originalHadFito, setOriginalHadFito] = useState(false);
 
+  // Parcela name — resolved during initial load; used to re-schedule the
+  // plazo de seguridad notification if the user edits a tratamiento.
+  const [parcelaName, setParcelaName] = useState('');
+
   // Optional campaña tag. campanaId === null means "not tagged".
   const [campanas, setCampanas] = useState<Campana[]>([]);
   const [campanaId, setCampanaId] = useState<string | null>(null);
@@ -128,12 +136,15 @@ export function EditActividadScreen({
         // the tag is optional.
         void parcelasService
           .getById(a.parcelaId)
-          .then((p) => campanasService.listByFinca(p.fincaId))
+          .then((p) => {
+            if (!cancelled) setParcelaName(p.name);
+            return campanasService.listByFinca(p.fincaId);
+          })
           .then((list) => {
             if (!cancelled) setCampanas(list);
           })
           .catch(() => {
-            /* silent: campaña tag is optional */
+            /* silent: parcela name + campaña tag are optional */
           });
       })
       .catch((err: unknown) => {
@@ -241,6 +252,24 @@ export function EditActividadScreen({
         // Always send campanaId: null explicitly unlinks, a string links.
         campanaId,
       });
+
+      // Keep the plazo de seguridad notification in sync with the edit.
+      // scheduleDeadlineNotification cancels any existing notification for
+      // this actividadId before scheduling the new one, so calling it here
+      // is idempotent and handles both date and product changes.
+      if (type === 'tratamiento_fitosanitario' && fitosanitarioPayload) {
+        void scheduleDeadlineNotification(
+          actividadId,
+          fitosanitarioPayload.productoComercial,
+          parcelaName,
+          fitosanitarioPayload.plazoSeguridadDias,
+          performedAt,
+        );
+      } else if (fitosanitarioPayload === null) {
+        // Type changed away from tratamiento_fitosanitario → cancel.
+        void cancelDeadlineNotification(actividadId);
+      }
+
       navigation.goBack();
     } catch (err) {
       if (err instanceof OfflineQueuedError) {

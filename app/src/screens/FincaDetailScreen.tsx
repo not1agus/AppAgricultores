@@ -28,6 +28,7 @@ import {
   loadActivePlazosForFinca,
 } from '@/services/plazoSeguridad.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'FincaDetail'>;
@@ -625,15 +626,18 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: theme.spacing.md },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: 2,
   },
   sectionLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -668,11 +672,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   cardTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
   },
   cardSubtitle: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
   },
@@ -683,11 +689,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: 2,
   },
   summaryValue: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '700',
     color: theme.colors.text,
@@ -706,6 +714,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   campanaName: {
+    ...typography.headline,
     fontSize: 15,
     fontWeight: '600',
     color: theme.colors.text,

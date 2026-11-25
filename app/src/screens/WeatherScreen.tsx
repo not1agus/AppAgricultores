@@ -22,6 +22,7 @@ import {
   weatherService,
 } from '@/services/weather.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Weather'>;
 
@@ -389,23 +390,27 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   alertBadgeText: {
+    ...typography.label,
     color: '#fff',
     fontWeight: '800',
     fontSize: 11,
     letterSpacing: 0.5,
   },
   alertPhenomenon: {
+    ...typography.headline,
     fontSize: 12,
     fontWeight: '600',
     flexShrink: 1,
   },
   alertTitle: {
+    ...typography.headline,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 2,
     lineHeight: 18,
   },
   alertMeta: {
+    ...typography.body,
     fontSize: 11,
     opacity: 0.75,
   },
@@ -430,6 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   dayName: {
+    ...typography.headline,
     fontSize: 15,
     fontWeight: '700',
     color: theme.colors.text,
@@ -438,11 +444,13 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   dayDate: {
+    ...typography.body,
     fontSize: 12,
     color: theme.colors.textMuted,
     marginTop: 1,
   },
   tempBig: {
+    ...typography.display,
     fontSize: 18,
     fontWeight: '800',
     color: theme.colors.text,
@@ -467,11 +475,13 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   statLabel: {
+    ...typography.label,
     fontSize: 11,
     color: theme.colors.textMuted,
     marginBottom: 1,
   },
   statValue: {
+    ...typography.bodyMedium,
     fontSize: 13,
     fontWeight: '600',
     color: theme.colors.text,

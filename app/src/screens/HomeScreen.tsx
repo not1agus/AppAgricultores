@@ -36,6 +36,7 @@ import { PARCELA_STALE_DAYS } from '@/services/parcelaStats.service';
 import type { Ticket } from '@/services/tickets.service';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Home'>;
 type StatsState = FincaStats | null;
@@ -662,11 +663,13 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1 },
   greeting: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
   },
   userName: {
+    ...typography.body,
     color: theme.colors.textMuted,
     fontSize: 13,
     marginTop: 2,
@@ -686,6 +689,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xs,
   },
   kpiLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -693,6 +697,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   kpiValue: {
+    ...typography.display,
     fontSize: 20,
     fontWeight: '700',
     color: theme.colors.text,
@@ -711,6 +716,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   alertTitle: {
+    ...typography.label,
     color: theme.colors.danger,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -722,6 +728,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   recentTitle: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',

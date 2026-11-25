@@ -9,6 +9,7 @@ import {
   TransaccionRow,
   UpdateTransaccionInput,
 } from './transacciones.types';
+import { computeCampanaSummary } from './transacciones.calculator';
 
 const TRANSACCION_COLUMNS =
   'id, campana_id, kind, category, occurred_at, amount_eur, description, ' +
@@ -212,21 +213,9 @@ export const transaccionesService = {
       .eq('campana_id', campanaId);
     if (error) throw error;
 
-    let totalIngresos = 0;
-    let totalGastos = 0;
-    for (const row of data ?? []) {
-      const amount = Number((row as { amount_eur: string | number }).amount_eur);
-      const kind = (row as { kind: 'ingreso' | 'gasto' }).kind;
-      if (kind === 'ingreso') totalIngresos += amount;
-      else totalGastos += amount;
-    }
-
-    return {
+    return computeCampanaSummary(
       campanaId,
-      totalIngresos,
-      totalGastos,
-      balance: totalIngresos - totalGastos,
-      count: data?.length ?? 0,
-    };
+      (data ?? []) as Array<{ kind: 'ingreso' | 'gasto'; amount_eur: string | number }>,
+    );
   },
 };

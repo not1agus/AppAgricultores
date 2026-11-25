@@ -35,6 +35,7 @@ import { OfflineQueuedError } from '@/services/mutationQueue.service';
 import { parcelasService } from '@/services/parcelas.service';
 import { uploadActividadImage } from '@/services/storage.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'EditActividad'>;
 
@@ -442,12 +443,14 @@ export function EditActividadScreen({
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
   },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: theme.spacing.xs,

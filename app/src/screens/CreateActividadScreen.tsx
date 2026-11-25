@@ -34,6 +34,7 @@ import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { scheduleDeadlineNotification } from '@/services/notifications.service';
 import { uploadActividadImage } from '@/services/storage.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateActividad'>;
 
@@ -460,12 +461,14 @@ export function CreateActividadScreen({
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
   },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: theme.spacing.xs,

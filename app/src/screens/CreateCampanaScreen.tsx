@@ -8,6 +8,7 @@ import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
 import { campanasService } from '@/services/campanas.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateCampana'>;
 
@@ -116,6 +117,7 @@ export function CreateCampanaScreen({ route, navigation }: Props): JSX.Element {
 
 const styles = StyleSheet.create({
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,

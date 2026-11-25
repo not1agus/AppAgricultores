@@ -10,6 +10,7 @@ import { uploadTicketImage } from '@/services/storage.service';
 import { ticketsService } from '@/services/tickets.service';
 import type { TransaccionKind } from '@/services/transacciones.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TicketScan'>;
 
@@ -162,6 +163,7 @@ export function TicketScanScreen({ route, navigation }: Props): JSX.Element {
 
 const styles = StyleSheet.create({
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -190,6 +192,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   subtitle: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
     marginBottom: theme.spacing.md,

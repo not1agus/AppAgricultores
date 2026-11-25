@@ -20,6 +20,7 @@ import {
   sigpacService,
 } from '@/services/sigpac.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateParcela'>;
 type Mode = 'sigpac' | 'manual';
@@ -369,6 +370,7 @@ export function CreateParcelaScreen({
 
 const styles = StyleSheet.create({
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -395,6 +397,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryText,
   },
   sectionTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,

@@ -18,6 +18,7 @@ import type { MainStackParamList } from '@/navigation/types';
 import { Member, MemberRole, membersService } from '@/services/members.service';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'FincaMembers'>;
@@ -254,17 +255,20 @@ export function FincaMembersScreen({ route }: Props): JSX.Element {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: 2,
     marginBottom: theme.spacing.md,
   },
   addCard: { marginBottom: theme.spacing.md },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: theme.spacing.xs,
@@ -296,6 +300,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   email: {
+    ...typography.bodyMedium,
     fontSize: 15,
     fontWeight: '600',
     color: theme.colors.text,

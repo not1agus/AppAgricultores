@@ -20,6 +20,7 @@ import {
   transaccionesService,
 } from '@/services/transacciones.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'EditTransaccion'>;
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xl,
   },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 13,
     marginBottom: theme.spacing.xs,

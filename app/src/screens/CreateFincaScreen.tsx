@@ -8,6 +8,7 @@ import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
 import { fincasService } from '@/services/fincas.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateFinca'>;
 
@@ -66,6 +67,7 @@ export function CreateFincaScreen({ navigation }: Props): JSX.Element {
 
 const styles = StyleSheet.create({
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,

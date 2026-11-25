@@ -24,6 +24,7 @@ import { exportCuadernoPdf } from '@/services/cuadernoExport.pdf';
 import { Finca, fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'FichaInspeccion'>;
@@ -400,6 +401,7 @@ const styles = StyleSheet.create({
   },
   errorIcon: { fontSize: 48, marginBottom: theme.spacing.md },
   errorTitle: {
+    ...typography.headline,
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,
@@ -448,6 +450,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
+    ...typography.label,
     fontSize: 13,
     fontWeight: '700',
     color: theme.colors.textMuted,
@@ -466,8 +469,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 3,
   },
-  infoLabel: { fontSize: 13, color: theme.colors.textMuted, flex: 1 },
+  infoLabel: { ...typography.label, fontSize: 13, color: theme.colors.textMuted, flex: 1 },
   infoValue: {
+    ...typography.bodyMedium,
     fontSize: 13,
     color: theme.colors.text,
     fontWeight: '500',

@@ -37,6 +37,7 @@ import { PARCELA_STALE_DAYS } from '@/services/parcelaStats.service';
 import type { Ticket } from '@/services/tickets.service';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'FincasList'>;
 
@@ -737,11 +738,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: 2,
   },
@@ -752,12 +755,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   itemTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
     flex: 1,
   },
   itemRole: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     textTransform: 'uppercase',
@@ -778,6 +783,7 @@ const styles = StyleSheet.create({
     minWidth: 96,
   },
   statLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -785,6 +791,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statValue: {
+    ...typography.bodyMedium,
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
@@ -800,6 +807,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xs,
   },
   aggregateLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -807,6 +815,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   aggregateValue: {
+    ...typography.display,
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,
@@ -825,6 +834,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   pendingTitle: {
+    ...typography.label,
     color: theme.colors.danger,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -838,6 +848,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   recentTitle: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',

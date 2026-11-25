@@ -19,6 +19,7 @@ import {
   FincaFinanceStats,
 } from '@/services/fincaFinanceStats.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Rentabilidad'>;
@@ -303,6 +304,7 @@ const styles = StyleSheet.create({
   // Aggregate KPI card
   kpiCard: { marginBottom: theme.spacing.md },
   kpiCardTitle: {
+    ...typography.label,
     fontSize: 13,
     fontWeight: '600',
     color: theme.colors.textMuted,
@@ -321,11 +323,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
   kpiLabel: {
+    ...typography.label,
     fontSize: 12,
     color: theme.colors.textMuted,
     marginBottom: 2,
   },
   kpiValue: {
+    ...typography.display,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -353,6 +357,7 @@ const styles = StyleSheet.create({
 
   // Section
   sectionTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
@@ -373,6 +378,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   campanaName: {
+    ...typography.headline,
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
@@ -401,11 +407,13 @@ const styles = StyleSheet.create({
   },
   campanaKpiCell: { minWidth: 72 },
   campanaKpiLabel: {
+    ...typography.label,
     fontSize: 11,
     color: theme.colors.textMuted,
     marginBottom: 1,
   },
   campanaKpiValue: {
+    ...typography.headline,
     fontSize: 14,
     fontWeight: '700',
   },

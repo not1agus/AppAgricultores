@@ -9,6 +9,7 @@ import { TextField } from '@/components/TextField';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -106,17 +107,20 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   brandLetter: {
+    ...typography.display,
     fontSize: 32,
     fontWeight: '800',
     color: theme.colors.primaryText,
   },
   title: {
+    ...typography.display,
     fontSize: 34,
     fontWeight: '800',
     color: theme.colors.text,
     letterSpacing: -0.5,
   },
   subtitle: {
+    ...typography.body,
     fontSize: 15,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,

@@ -96,7 +96,7 @@ function buildHtml(
 
   const dateRange =
     sorted.length > 0
-      ? `${fmtDate(sorted[0].performedAt)} — ${fmtDate(sorted[sorted.length - 1].performedAt)}`
+      ? `${fmtDate(sorted[0]!.performedAt)} — ${fmtDate(sorted[sorted.length - 1]!.performedAt)}`
       : '—';
 
   return `<!DOCTYPE html>

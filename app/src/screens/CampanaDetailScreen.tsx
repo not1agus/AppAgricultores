@@ -26,6 +26,7 @@ import {
 } from '@/services/transacciones.service';
 import { exportTransaccionesCsv } from '@/services/transaccionesExport.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CampanaDetail'>;
@@ -627,6 +628,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -686,11 +688,13 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row' },
   summaryCol: { flex: 1 },
   summaryLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: 2,
   },
   summaryValue: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '700',
     color: theme.colors.text,
@@ -705,6 +709,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   breakdownHeader: {
+    ...typography.headline,
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
@@ -778,6 +783,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
@@ -789,16 +795,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   txCategory: {
+    ...typography.headline,
     fontSize: 15,
     fontWeight: '600',
     color: theme.colors.text,
   },
   txMeta: {
+    ...typography.body,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
     fontSize: 12,
   },
   txAmount: {
+    ...typography.headline,
     fontWeight: '700',
     fontSize: 16,
     marginLeft: theme.spacing.sm,

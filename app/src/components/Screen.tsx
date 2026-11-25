@@ -5,7 +5,7 @@ import { Edge, SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/theme';
 
 interface ScreenProps {
-  children: ReactNode;
+  children?: ReactNode;
   style?: ViewStyle;
   /** Safe-area edges to inset. Defaults to top + bottom. */
   edges?: Edge[];

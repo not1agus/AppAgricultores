@@ -24,6 +24,7 @@ import {
   ticketsService,
 } from '@/services/tickets.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TicketDetail'>;
 
@@ -467,6 +468,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -507,6 +509,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sectionTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,

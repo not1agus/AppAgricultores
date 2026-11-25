@@ -19,6 +19,7 @@ import { StatusPill } from '@/components/StatusPill';
 import type { MainStackParamList } from '@/navigation/types';
 import { Ticket, ticketsService } from '@/services/tickets.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'TicketsList'>;
@@ -364,6 +365,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -382,6 +384,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   statLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -389,11 +392,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statValue: {
+    ...typography.display,
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,
   },
   totalValue: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '700',
     color: theme.colors.text,

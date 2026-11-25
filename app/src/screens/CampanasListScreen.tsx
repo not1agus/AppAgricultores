@@ -21,6 +21,7 @@ import {
   transaccionesService,
 } from '@/services/transacciones.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CampanasList'>;
 
@@ -462,6 +463,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -473,12 +475,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   itemTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
     flex: 1,
   },
   bucketBadge: {
+    ...typography.label,
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -504,6 +508,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.xs,
   },
   balance: {
+    ...typography.headline,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -523,6 +528,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xs,
   },
   aggregateLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -530,6 +536,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   aggregateValue: {
+    ...typography.display,
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,

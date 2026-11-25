@@ -23,6 +23,7 @@ import {
 } from '@/services/mutationQueue.service';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Settings'>;
@@ -380,6 +381,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xl,
   },
   sectionTitle: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -395,11 +397,13 @@ const styles = StyleSheet.create({
     height: theme.spacing.sm,
   },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: 2,
   },
   value: {
+    ...typography.bodyMedium,
     color: theme.colors.text,
     fontSize: 16,
     fontWeight: '600',

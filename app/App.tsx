@@ -15,6 +15,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { startNetSync, stopNetSync } from '@/services/netSync.service';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
 
@@ -33,6 +34,11 @@ export default function App(): JSX.Element {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    startNetSync();
+    return () => stopNetSync();
+  }, []);
 
   // Blank screen while fonts load — avoids FOUT and keeps the splash
   // visible (Expo shows the native splash until the first JS frame renders).

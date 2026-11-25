@@ -27,6 +27,7 @@ import { exportActividadesCsv } from '@/services/cuadernoExport.service';
 import { fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { fmtDate } from '@/utils/date';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ActividadesList'>;
@@ -475,11 +476,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
   },
   filterLabel: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 11,
     textTransform: 'uppercase',
@@ -539,6 +542,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   breakdownHeader: {
+    ...typography.headline,
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
@@ -555,6 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   bucketCategory: {
+    ...typography.bodyMedium,
     flex: 1,
     fontSize: 14,
     color: theme.colors.text,
@@ -562,6 +567,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   bucketAmount: {
+    ...typography.headline,
     fontSize: 14,
     fontWeight: '700',
     color: theme.colors.text,
@@ -590,6 +596,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,

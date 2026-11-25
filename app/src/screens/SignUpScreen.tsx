@@ -8,6 +8,7 @@ import { TextField } from '@/components/TextField';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 
@@ -156,16 +157,19 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   title: {
+    ...typography.display,
     fontSize: 28,
     fontWeight: '700',
     color: theme.colors.text,
   },
   subtitle: {
+    ...typography.body,
     fontSize: 14,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.xs,
   },
   emailEmphasis: {
+    ...typography.bodyMedium,
     color: theme.colors.text,
     fontWeight: '600',
   },

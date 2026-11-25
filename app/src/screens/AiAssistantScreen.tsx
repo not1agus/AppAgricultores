@@ -16,6 +16,7 @@ import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
 import { ChatMessage, aiService } from '@/services/ai.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AiAssistant'>;
 
@@ -216,12 +217,14 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   welcomeTitle: {
+    ...typography.display,
     fontSize: 20,
     fontWeight: '800',
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
   welcomeSub: {
+    ...typography.body,
     fontSize: 14,
     color: theme.colors.textMuted,
     lineHeight: 20,
@@ -237,6 +240,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary + '12',
   },
   suggestionText: {
+    ...typography.label,
     fontSize: 13,
     color: theme.colors.primary,
     fontWeight: '500',
@@ -278,7 +282,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   bubbleError: { borderColor: theme.colors.danger, borderWidth: 1 },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
+  bubbleText: { ...typography.body, fontSize: 14, lineHeight: 20 },
   bubbleTextUser: { color: theme.colors.primaryText },
   bubbleTextModel: { color: theme.colors.text },
 

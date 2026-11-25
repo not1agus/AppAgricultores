@@ -32,6 +32,7 @@ import { computeParcelaMetrics } from '@/services/parcelaMetrics.service';
 import { strictestActivePlazo } from '@/services/plazoSeguridad.service';
 import type { SigpacReference } from '@/services/sigpac.service';
 import { theme } from '@/theme';
+import { typography } from '@/typography';
 import { confirmDestructive } from '@/utils/confirm';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ParcelaDetail'>;
@@ -590,6 +591,7 @@ export function ParcelaDetailScreen({
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: {
+    ...typography.display,
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.text,
@@ -618,10 +620,12 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xs,
   },
   label: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 13,
   },
   value: {
+    ...typography.bodyMedium,
     color: theme.colors.text,
     fontSize: 14,
     fontWeight: '600',
@@ -637,6 +641,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   sectionTitle: {
+    ...typography.headline,
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,
@@ -663,6 +668,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   metricsHeadline: {
+    ...typography.display,
     fontSize: 22,
     fontWeight: '700',
     color: theme.colors.text,

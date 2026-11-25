@@ -27,8 +27,9 @@ export const ticketFieldsSchema = z
     almazara: z.string().trim().max(200).nullable().optional(),
     numeroTicket: z.string().trim().max(50).nullable().optional(),
     fecha: isoDate.nullable().optional(),
-    // Olive delivery
+    // Olive delivery / oil yield
     kgAceituna: z.number().nonnegative().nullable().optional(),
+    kgAceite: z.number().nonnegative().nullable().optional(),
     // SIGPAC plot reference printed on the delivery note
     termino: z.string().trim().max(120).nullable().optional(),
     poligono: z.string().trim().max(20).nullable().optional(),

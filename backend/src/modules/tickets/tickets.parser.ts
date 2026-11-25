@@ -338,6 +338,14 @@ export function parseTicketFields(result: OcrEngineResponse): TicketFields {
   const kgAceituna = resolveNumber(placed, [
     ['total', 'kg'],
     ['kg', 'aceituna'],
+    ['aceituna'],
+  ]);
+
+  const kgAceite = resolveNumber(placed, [
+    ['kg', 'aceite'],
+    ['aceite', 'kg'],
+    ['litros', 'aceite'],
+    ['aceite', 'litros'],
   ]);
 
   const rendimientoPct = resolveNumber(placed, [['rendimiento'], ['rdto']]);
@@ -359,6 +367,7 @@ export function parseTicketFields(result: OcrEngineResponse): TicketFields {
     numeroTicket: resolveText(placed, [['ticket']]),
     fecha: fecha ?? null,
     kgAceituna,
+    kgAceite: kgAceite !== null && kgAceite < (kgAceituna ?? Infinity) ? kgAceite : null,
     termino: resolveText(placed, [['ermino']]),
     poligono: resolveText(placed, [['olig']]),
     parcela: resolveText(placed, [['arcela']]),

@@ -29,33 +29,65 @@ import { typography } from '@/typography';
 type Props = NativeStackScreenProps<MainStackParamList, 'TicketDetail'>;
 
 type FormState = {
+  // Identificación
+  numeroTicket: string;
   almazara: string;
   fecha: string;
+  // Producción
   kgAceituna: string;
   kgAceite: string;
   rendimientoPct: string;
+  calidad: string;
+  variedad: string;
+  lavada: boolean | null;
+  // Económico
   totalEur: string;
+  precioUnitarioEur: string;
+  // Horarios
+  horaInicio: string;
+  horaFinal: string;
+  duracion: string;
 };
 
 const EMPTY_FORM: FormState = {
+  numeroTicket: '',
   almazara: '',
   fecha: '',
   kgAceituna: '',
   kgAceite: '',
   rendimientoPct: '',
+  calidad: '',
+  variedad: '',
+  lavada: null,
   totalEur: '',
+  precioUnitarioEur: '',
+  horaInicio: '',
+  horaFinal: '',
+  duracion: '',
 };
 
 function fieldsToForm(fields: TicketFields | null | undefined): FormState {
   const f = fields ?? {};
   return {
+    numeroTicket: f.numeroTicket ?? '',
     almazara: f.almazara ?? '',
     fecha: f.fecha ?? '',
     kgAceituna: f.kgAceituna?.toString() ?? '',
     kgAceite: f.kgAceite?.toString() ?? '',
     rendimientoPct: f.rendimientoPct?.toString() ?? '',
+    calidad: f.calidad ?? '',
+    variedad: f.variedad ?? '',
+    lavada: f.lavada ?? null,
     totalEur: f.totalEur?.toString() ?? '',
+    precioUnitarioEur: f.precioUnitarioEur?.toString() ?? '',
+    horaInicio: f.horaInicio ?? '',
+    horaFinal: f.horaFinal ?? '',
+    duracion: f.duracion ?? '',
   };
+}
+
+function str(v: string): string | null {
+  return v.trim().length > 0 ? v.trim() : null;
 }
 
 function parseNumberOrNull(raw: string): number | null {
@@ -67,19 +99,24 @@ function parseNumberOrNull(raw: string): number | null {
 
 function formToFields(form: FormState): TicketFields {
   return {
-    almazara: form.almazara.trim().length > 0 ? form.almazara.trim() : null,
-    fecha: form.fecha.trim().length > 0 ? form.fecha.trim() : null,
+    numeroTicket: str(form.numeroTicket),
+    almazara: str(form.almazara),
+    fecha: str(form.fecha),
     kgAceituna: parseNumberOrNull(form.kgAceituna),
     kgAceite: parseNumberOrNull(form.kgAceite),
     rendimientoPct: parseNumberOrNull(form.rendimientoPct),
+    calidad: str(form.calidad),
+    variedad: str(form.variedad),
+    lavada: form.lavada,
     totalEur: parseNumberOrNull(form.totalEur),
+    precioUnitarioEur: parseNumberOrNull(form.precioUnitarioEur),
+    horaInicio: str(form.horaInicio),
+    horaFinal: str(form.horaFinal),
+    duracion: str(form.duracion),
     currency: 'EUR',
   };
 }
 
-/** Format a percentage with 2 decimals, Spanish style (comma decimal) —
- * matches what the user types in the field so a tap-to-fill round-trips
- * without surprise. */
 function fmtPctEs(n: number): string {
   return n
     .toLocaleString('es-ES', {
@@ -90,12 +127,18 @@ function fmtPctEs(n: number): string {
     .replace('.', ',');
 }
 
-/** Threshold (in absolute %) above which the user-entered rendimiento and
- * the kg-derived value are flagged as a discrepancy. 0.5 pp swallows
- * normal rounding noise — almazara tickets rarely report kg with more
- * precision than the integer kilo, so derived rendimiento can drift
- * ~0.1-0.2 pp purely from rounding. Anything bigger is worth surfacing. */
 const RENDIMIENTO_TOLERANCE_PCT = 0.5;
+
+function confidenceLabel(c: number | null): {
+  text: string;
+  color: string;
+} {
+  if (c === null) return { text: 'OCR sin datos de confianza', color: theme.colors.textMuted };
+  const pct = Math.round(c * 100);
+  if (pct >= 85) return { text: `Confianza OCR alta (${pct}%)`, color: theme.colors.primary };
+  if (pct >= 65) return { text: `Confianza OCR media (${pct}%)`, color: theme.colors.secondary };
+  return { text: `Confianza OCR baja (${pct}%) — revisa todos los campos`, color: theme.colors.danger };
+}
 
 export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
   const { ticketId, fincaId } = route.params;
@@ -107,10 +150,9 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [notes, setNotes] = useState('');
   const [campanas, setCampanas] = useState<Campana[]>([]);
-  const [selectedCampanaId, setSelectedCampanaId] = useState<string | null>(
-    null,
-  );
+  const [selectedCampanaId, setSelectedCampanaId] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     setError(null);
@@ -121,6 +163,7 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
       ]);
       setTicket(t);
       setForm(fieldsToForm(t.corrected ?? t.parsed));
+      setNotes(t.notes ?? '');
       setCampanas(cs);
       setSelectedCampanaId(t.campanaId ?? cs[0]?.id ?? null);
     } catch (err) {
@@ -139,6 +182,7 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     try {
       const updated = await ticketsService.update(ticket.id, {
         corrected: formToFields(form),
+        notes: notes.trim().length > 0 ? notes.trim() : null,
       });
       setTicket(updated);
     } catch (err) {
@@ -177,9 +221,9 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     setBusy(true);
     setError(null);
     try {
-      // Save latest corrections first so the backend derives values from them.
       await ticketsService.update(ticket.id, {
         corrected: formToFields(form),
+        notes: notes.trim().length > 0 ? notes.trim() : null,
       });
       const confirmed = await ticketsService.confirm(ticket.id, {
         campanaId: selectedCampanaId,
@@ -201,17 +245,11 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     Alert.alert(
       'Eliminar ticket',
       hasTx
-        ? 'Este ticket ya está confirmado como transacción. Al borrar el ticket se elimina la foto y el OCR, pero la transacción asociada se mantiene (puedes borrarla aparte desde la campaña).'
+        ? 'Este ticket ya está confirmado como transacción. Al borrar el ticket se elimina la foto y el OCR, pero la transacción asociada se mantiene.'
         : '¿Seguro que quieres eliminar este ticket? Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: () => {
-            void doDelete();
-          },
-        },
+        { text: 'Eliminar', style: 'destructive', onPress: () => { void doDelete(); } },
       ],
     );
   }
@@ -238,16 +276,11 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     [ticket, selectedCampanaId, form.totalEur],
   );
 
-  // Rendimiento (% kg aceite / kg aceituna) is the headline KPI for any
-  // almazara visit. We derive it on the fly so the user gets a sanity
-  // check against their typed value, and a one-tap autofill when the
-  // field is empty — entering it manually is a redundant calculator
-  // session today.
   const computedRendimiento = useMemo(() => {
     const aceituna = parseNumberOrNull(form.kgAceituna);
     const aceite = parseNumberOrNull(form.kgAceite);
     if (aceituna === null || aceite === null) return null;
-    if (aceituna <= 0) return null; // div-by-zero / nonsensical input
+    if (aceituna <= 0) return null;
     return (aceite / aceituna) * 100;
   }, [form.kgAceituna, form.kgAceite]);
 
@@ -256,20 +289,23 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     [form.rendimientoPct],
   );
 
-  // Discrepancy flag only meaningful when both values are present; if
-  // the user hasn't typed anything we offer autofill instead.
   const rendimientoMismatch =
     computedRendimiento !== null &&
     enteredRendimiento !== null &&
-    Math.abs(enteredRendimiento - computedRendimiento) >
-      RENDIMIENTO_TOLERANCE_PCT;
+    Math.abs(enteredRendimiento - computedRendimiento) > RENDIMIENTO_TOLERANCE_PCT;
 
   function autofillRendimiento(): void {
     if (computedRendimiento === null) return;
-    setForm((prev) => ({
-      ...prev,
-      rendimientoPct: fmtPctEs(computedRendimiento),
-    }));
+    setForm((prev) => ({ ...prev, rendimientoPct: fmtPctEs(computedRendimiento) }));
+  }
+
+  // Show what the OCR parsed for a field — helps the user spot corrections.
+  function parsedHint(key: keyof typeof form): string | null {
+    const p = ticket?.parsed;
+    if (!p) return null;
+    const raw = p[key as keyof TicketFields];
+    if (raw === null || raw === undefined || raw === '') return null;
+    return String(raw);
   }
 
   if (loading || !ticket) {
@@ -286,27 +322,31 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
     );
   }
 
+  const conf = confidenceLabel(ticket.ocrConfidence);
+
   return (
     <Screen>
       <ScrollView keyboardShouldPersistTaps="handled">
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Ticket</Text>
           <StatusPill status={ticket.status} />
         </View>
 
+        {/* Image */}
         <Image source={{ uri: ticket.imageUrl }} style={styles.preview} />
 
+        {/* OCR confidence */}
+        {ticket.status === 'done' || ticket.status === 'failed' ? (
+          <Text style={[styles.confidence, { color: conf.color }]}>{conf.text}</Text>
+        ) : null}
+
+        {/* Already confirmed banner */}
         {ticket.transaccionId ? (
           <Card style={styles.banner}>
             <Text style={styles.bannerText}>
               Este ticket ya está confirmado y vinculado a una transacción.
             </Text>
-            {/* Single-tap escape from the dead-end the previous version
-                created: the user landed here from the tickets list to
-                review the original, and now needs to jump to the linked
-                movement (to fix a date, add notes, or just verify) without
-                having to navigate Finca → Campañas → find the right
-                transaction by hand. */}
             <Button
               title="Ver transacción"
               variant="ghost"
@@ -320,26 +360,55 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
           </Card>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Campos detectados</Text>
-        <TextField label="Almazara" value={form.almazara} onChangeText={(v) => setForm({ ...form, almazara: v })} />
+        {/* ── Identificación ─────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Identificación</Text>
+        <TextField
+          label="Nº ticket"
+          value={form.numeroTicket}
+          onChangeText={(v) => setForm({ ...form, numeroTicket: v })}
+          autoCapitalize="characters"
+        />
+        {parsedHint('numeroTicket') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('numeroTicket')}</Text>
+        ) : null}
+        <TextField
+          label="Almazara"
+          value={form.almazara}
+          onChangeText={(v) => setForm({ ...form, almazara: v })}
+        />
+        {parsedHint('almazara') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('almazara')}</Text>
+        ) : null}
         <TextField
           label="Fecha (YYYY-MM-DD)"
           value={form.fecha}
           onChangeText={(v) => setForm({ ...form, fecha: v })}
           autoCapitalize="none"
         />
+        {parsedHint('fecha') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('fecha')}</Text>
+        ) : null}
+
+        {/* ── Producción ─────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Producción</Text>
         <TextField
           label="Kg aceituna"
           value={form.kgAceituna}
           onChangeText={(v) => setForm({ ...form, kgAceituna: v })}
           keyboardType="decimal-pad"
         />
+        {parsedHint('kgAceituna') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('kgAceituna')} kg</Text>
+        ) : null}
         <TextField
           label="Kg aceite"
           value={form.kgAceite}
           onChangeText={(v) => setForm({ ...form, kgAceite: v })}
           keyboardType="decimal-pad"
         />
+        {parsedHint('kgAceite') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('kgAceite')} kg</Text>
+        ) : null}
         <TextField
           label="Rendimiento (%)"
           value={form.rendimientoPct}
@@ -349,9 +418,6 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
         {computedRendimiento !== null ? (
           <View style={styles.rendimientoHintWrap}>
             {enteredRendimiento === null ? (
-              // Empty field + both kg known → offer one-tap autofill so
-              // the user doesn't have to compute aceite/aceituna×100 in
-              // their head every time.
               <Pressable
                 onPress={autofillRendimiento}
                 hitSlop={6}
@@ -359,18 +425,12 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
                 accessibilityLabel="Usar rendimiento calculado"
               >
                 <Text style={styles.rendimientoHintLink}>
-                  Calculado: {fmtPctEs(computedRendimiento)} % · pulsar para
-                  rellenar
+                  Calculado: {fmtPctEs(computedRendimiento)} % · pulsar para rellenar
                 </Text>
               </Pressable>
             ) : rendimientoMismatch ? (
-              // Both present and they disagree beyond rounding noise — the
-              // ticket OCR likely got one of the two kg figures wrong, or
-              // the user typed a stale value. Surfacing the mismatch is
-              // worth more than silently trusting the user.
               <Text style={styles.rendimientoHintWarn}>
-                Calculado: {fmtPctEs(computedRendimiento)} % — no coincide
-                con el valor introducido.
+                Calculado: {fmtPctEs(computedRendimiento)} % — no coincide con el introducido.
               </Text>
             ) : (
               <Text style={styles.rendimientoHintText}>
@@ -380,12 +440,95 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
           </View>
         ) : null}
         <TextField
+          label="Calidad"
+          value={form.calidad}
+          onChangeText={(v) => setForm({ ...form, calidad: v })}
+        />
+        {parsedHint('calidad') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('calidad')}</Text>
+        ) : null}
+        <TextField
+          label="Variedad"
+          value={form.variedad}
+          onChangeText={(v) => setForm({ ...form, variedad: v })}
+        />
+        {parsedHint('variedad') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('variedad')}</Text>
+        ) : null}
+
+        {/* Lavada boolean */}
+        <Text style={styles.fieldLabel}>Lavada</Text>
+        <View style={styles.chips}>
+          {([true, false, null] as Array<boolean | null>).map((v) => {
+            const label = v === null ? 'Sin datos' : v ? 'Sí' : 'No';
+            const selected = form.lavada === v;
+            return (
+              <Text
+                key={label}
+                onPress={() => setForm({ ...form, lavada: v })}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                {label}
+              </Text>
+            );
+          })}
+        </View>
+        {ticket.parsed?.lavada !== undefined && ticket.parsed.lavada !== null ? (
+          <Text style={styles.ocrHint}>OCR: {ticket.parsed.lavada ? 'Sí' : 'No'}</Text>
+        ) : null}
+
+        {/* ── Económico ──────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Económico</Text>
+        <TextField
           label="Total (€)"
           value={form.totalEur}
           onChangeText={(v) => setForm({ ...form, totalEur: v })}
           keyboardType="decimal-pad"
         />
+        {parsedHint('totalEur') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('totalEur')} €</Text>
+        ) : null}
+        <TextField
+          label="Precio/kg (€)"
+          value={form.precioUnitarioEur}
+          onChangeText={(v) => setForm({ ...form, precioUnitarioEur: v })}
+          keyboardType="decimal-pad"
+        />
+        {parsedHint('precioUnitarioEur') ? (
+          <Text style={styles.ocrHint}>OCR: {parsedHint('precioUnitarioEur')} €/kg</Text>
+        ) : null}
 
+        {/* ── Horarios ───────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Horarios</Text>
+        <TextField
+          label="Hora entrada"
+          value={form.horaInicio}
+          onChangeText={(v) => setForm({ ...form, horaInicio: v })}
+          autoCapitalize="none"
+        />
+        <TextField
+          label="Hora salida"
+          value={form.horaFinal}
+          onChangeText={(v) => setForm({ ...form, horaFinal: v })}
+          autoCapitalize="none"
+        />
+        <TextField
+          label="Duración"
+          value={form.duracion}
+          onChangeText={(v) => setForm({ ...form, duracion: v })}
+          autoCapitalize="none"
+        />
+
+        {/* ── Notas ──────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Notas</Text>
+        <TextField
+          label="Notas (opcionales)"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
+
+        {/* Actions */}
         <View style={styles.actionsRow}>
           <Button
             title="Guardar"
@@ -404,11 +547,11 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
           />
         </View>
 
+        {/* ── Campaña ────────────────────────────────────── */}
         <Text style={styles.sectionTitle}>Campaña</Text>
         {campanas.length === 0 ? (
           <Text style={styles.empty}>
-            No hay campañas en esta finca. Crea una para poder confirmar el
-            ticket como transacción.
+            No hay campañas en esta finca. Crea una para poder confirmar el ticket.
           </Text>
         ) : (
           <View style={styles.chips}>
@@ -437,9 +580,10 @@ export function TicketDetailScreen({ route, navigation }: Props): JSX.Element {
           style={styles.confirm}
         />
 
+        {/* Raw OCR text */}
         {ticket.ocrRawText ? (
           <>
-            <Text style={styles.sectionTitle}>Texto OCR</Text>
+            <Text style={styles.sectionTitle}>Texto OCR bruto</Text>
             <Card>
               <Text style={styles.rawText}>{ticket.ocrRawText}</Text>
             </Card>
@@ -478,16 +622,41 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     resizeMode: 'cover',
+  },
+  confidence: {
+    ...typography.label,
+    fontSize: 12,
+    marginBottom: theme.spacing.md,
   },
   banner: { marginBottom: theme.spacing.md },
   bannerText: { color: theme.colors.text },
-  bannerAction: {
+  bannerAction: { marginTop: theme.spacing.sm, alignSelf: 'flex-start' },
+  sectionTitle: {
+    ...typography.label,
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '700',
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
+  },
+  fieldLabel: {
+    ...typography.label,
+    color: theme.colors.textMuted,
+    fontSize: 12,
     marginTop: theme.spacing.sm,
-    alignSelf: 'flex-start',
+    marginBottom: theme.spacing.xs,
+  },
+  ocrHint: {
+    ...typography.label,
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: -theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+    paddingHorizontal: 2,
   },
   rendimientoHintWrap: {
     marginTop: -theme.spacing.sm,
@@ -495,31 +664,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   rendimientoHintText: {
+    ...typography.label,
     color: theme.colors.textMuted,
     fontSize: 12,
   },
   rendimientoHintLink: {
+    ...typography.label,
     color: theme.colors.primary,
     fontSize: 12,
     fontWeight: '600',
   },
   rendimientoHintWarn: {
+    ...typography.label,
     color: theme.colors.danger,
     fontSize: 12,
     fontWeight: '600',
   },
-  sectionTitle: {
-    ...typography.headline,
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-  },
   actionsRow: { flexDirection: 'row', marginTop: theme.spacing.sm },
   flex: { flex: 1 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: theme.spacing.xs },
   chip: {
+    ...typography.label,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: 999,
@@ -530,6 +695,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.xs,
     marginBottom: theme.spacing.xs,
     overflow: 'hidden',
+    fontSize: 13,
   },
   chipSelected: {
     backgroundColor: theme.colors.primary,
@@ -537,13 +703,8 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryText,
   },
   confirm: { marginTop: theme.spacing.md },
-  empty: {
-    color: theme.colors.textMuted,
-  },
-  error: {
-    color: theme.colors.danger,
-    marginTop: theme.spacing.sm,
-  },
+  empty: { color: theme.colors.textMuted },
+  error: { color: theme.colors.danger, marginTop: theme.spacing.sm },
   rawText: {
     fontFamily: 'Courier',
     fontSize: 12,

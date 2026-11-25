@@ -30,5 +30,6 @@ export type MainStackParamList = {
   Rentabilidad: { fincaId: string; fincaName: string };
   FichaInspeccion: { fincaId: string; fincaName: string };
   AiAssistant: { fincaId: string; fincaName: string };
+  Weather: { fincaId: string; fincaName: string; lat: number; lon: number };
   Settings: undefined;
 };

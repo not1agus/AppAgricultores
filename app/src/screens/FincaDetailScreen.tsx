@@ -102,6 +102,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
+  const [centroid, setCentroid] = useState<{ lat: number; lon: number } | null>(null);
 
   // Map<parcelaId, PlazoStatus> for parcelas with an active plazo de
   // seguridad. Empty map = nothing to surface. We never render an error
@@ -144,6 +145,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
       if (withGeo?.geometry) {
         const centroid = computeCentroid(withGeo.geometry);
         if (centroid) {
+          setCentroid(centroid);
           setForecastLoading(true);
           weatherService
             .getForecast(centroid.lat, centroid.lon)
@@ -324,6 +326,21 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
           fincaName: finca.name,
         }),
     },
+    ...(centroid
+      ? [
+          {
+            title: 'Tiempo y alertas',
+            subtitle: 'Previsión 7 días y alertas AEMET',
+            onPress: () =>
+              navigation.navigate('Weather', {
+                fincaId,
+                fincaName: finca.name,
+                lat: centroid.lat,
+                lon: centroid.lon,
+              }),
+          },
+        ]
+      : []),
     {
       title: 'Miembros',
       subtitle: 'Invita trabajadores y gestiona permisos',
@@ -423,6 +440,23 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
                 );
               })}
             </ScrollView>
+            {centroid && finca ? (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('Weather', {
+                    fincaId,
+                    fincaName: finca.name,
+                    lat: centroid.lat,
+                    lon: centroid.lon,
+                  })
+                }
+                style={styles.weatherLink}
+              >
+                <Text style={styles.weatherLinkText}>
+                  Ver alertas y previsión completa →
+                </Text>
+              </Pressable>
+            ) : null}
           </>
         ) : null}
 
@@ -741,6 +775,17 @@ const styles = StyleSheet.create({
     color: '#7A5C18',
     fontSize: 12,
     marginTop: 4,
+  },
+  weatherLink: {
+    alignSelf: 'flex-end',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+    paddingVertical: 4,
+  },
+  weatherLinkText: {
+    color: theme.colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   forecastLoading: {
     paddingVertical: theme.spacing.md,

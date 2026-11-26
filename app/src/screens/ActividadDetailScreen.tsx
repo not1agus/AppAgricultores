@@ -22,6 +22,7 @@ import {
 } from '@/services/actividades.service';
 import { campanasService } from '@/services/campanas.service';
 import { OfflineQueuedError } from '@/services/mutationQueue.service';
+import { cancelDeadlineNotification } from '@/services/notifications.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import {
   computePlazoFromActividad,
@@ -145,6 +146,9 @@ export function ActividadDetailScreen({
     setError(null);
     try {
       await actividadesService.remove(actividad.id);
+      // Cancel any scheduled plazo de seguridad notification — no-op if
+      // this isn't a tratamiento fitosanitario or no notification was set.
+      void cancelDeadlineNotification(actividad.id);
       navigation.goBack();
     } catch (err) {
       if (err instanceof OfflineQueuedError) {

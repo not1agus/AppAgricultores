@@ -26,6 +26,7 @@ import {
   actividadesService,
 } from '@/services/actividades.service';
 import { NetworkError } from '@/services/api';
+import { exportCdeFitosanitariosCsv } from '@/services/cdeExport.service';
 import { exportActividadesCsv } from '@/services/cuadernoExport.service';
 import { exportCuadernoPdf } from '@/services/cuadernoExportPdf';
 import { fincasService } from '@/services/fincas.service';
@@ -166,6 +167,7 @@ export function ActividadesListScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingCde, setExportingCde] = useState(false);
   const [breakdownExpanded, setBreakdownExpanded] = useState(true);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -313,6 +315,20 @@ export function ActividadesListScreen({
     }
   }
 
+  async function handleExportCde(): Promise<void> {
+    if (exportingCde) return;
+    setError(null);
+    setExportingCde(true);
+    try {
+      const finca = await fincasService.getById(fincaId);
+      await exportCdeFitosanitariosCsv(finca.name, searchedActividades, parcelas);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo exportar para CDE');
+    } finally {
+      setExportingCde(false);
+    }
+  }
+
   if (loading) {
     return (
       <Screen>
@@ -350,6 +366,18 @@ export function ActividadesListScreen({
             onPress={handleExport}
             loading={exporting}
             disabled={searchedActividades.length === 0}
+          />
+          <View style={{ width: theme.spacing.xs }} />
+          <Button
+            title="CDE"
+            variant="ghost"
+            onPress={handleExportCde}
+            loading={exportingCde}
+            disabled={
+              searchedActividades.filter(
+                (a) => a.type === 'tratamiento_fitosanitario',
+              ).length === 0
+            }
           />
           <View style={{ width: theme.spacing.xs }} />
           <Button

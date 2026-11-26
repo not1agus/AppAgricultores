@@ -24,6 +24,7 @@ import {
   actividadesService,
 } from '@/services/actividades.service';
 import { exportActividadesCsv } from '@/services/cuadernoExport.service';
+import { exportCuadernoPdf } from '@/services/cuadernoExportPdf';
 import { fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';
@@ -160,6 +161,7 @@ export function ActividadesListScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [breakdownExpanded, setBreakdownExpanded] = useState(true);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +243,20 @@ export function ActividadesListScreen({
     setRefreshing(false);
   }, [load]);
 
+  async function handleExportPdf(): Promise<void> {
+    if (exportingPdf) return;
+    setError(null);
+    setExportingPdf(true);
+    try {
+      const finca = await fincasService.getById(fincaId);
+      await exportCuadernoPdf(finca, parcelas, null, searchedActividades);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo exportar el PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   async function handleExport(): Promise<void> {
     if (exporting) return;
     setError(null);
@@ -275,7 +291,15 @@ export function ActividadesListScreen({
         <Text style={styles.title}>Cuaderno</Text>
         <View style={styles.headerActions}>
           <Button
-            title="Exportar"
+            title="PDF"
+            variant="ghost"
+            onPress={handleExportPdf}
+            loading={exportingPdf}
+            disabled={searchedActividades.length === 0}
+          />
+          <View style={{ width: theme.spacing.xs }} />
+          <Button
+            title="CSV"
             variant="ghost"
             onPress={handleExport}
             loading={exporting}

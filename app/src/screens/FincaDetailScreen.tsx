@@ -365,7 +365,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
         <View style={styles.header}>
           <Text style={styles.title}>{finca.name}</Text>
           <Text style={styles.subtitle}>
-            Finca · rol: {finca.role === 'owner' ? 'propietario' : 'trabajador'}
+            Finca · {finca.role === 'owner' ? 'propietario' : 'trabajador'}
           </Text>
         </View>
 

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -13,6 +14,8 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
+import { NetworkError } from '@/services/api';
+import { formatCacheAge } from '@/services/offlineCache.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import {
   aggregateParcelas,
@@ -65,14 +68,44 @@ export function ParcelasListScreen({ route, navigation }: Props): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+
+  const CACHE_KEY = `cache_v1_parcelas_${fincaId}`;
+  const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
   const load = useCallback(async (): Promise<void> => {
     setError(null);
     try {
-      setParcelas(await parcelasService.listByFinca(fincaId));
+      const parcs = await parcelasService.listByFinca(fincaId);
+      setParcelas(parcs);
+      setFromCache(false);
+      setCachedAt(null);
+      try {
+        await AsyncStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ parcelas: parcs, savedAt: new Date().toISOString() }),
+        );
+      } catch { /* best-effort */ }
     } catch (err) {
+      if (err instanceof NetworkError) {
+        try {
+          const raw = await AsyncStorage.getItem(CACHE_KEY);
+          if (raw) {
+            const cached = JSON.parse(raw) as { parcelas: Parcela[]; savedAt: string };
+            const age = Date.now() - new Date(cached.savedAt).getTime();
+            if (age <= CACHE_MAX_AGE_MS) {
+              setParcelas(cached.parcelas);
+              setFromCache(true);
+              setCachedAt(cached.savedAt);
+              return;
+            }
+          }
+        } catch { /* corrupted cache */ }
+      }
       setError(err instanceof Error ? err.message : 'Error cargando parcelas');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fincaId]);
 
   useEffect(() => {
@@ -157,6 +190,13 @@ export function ParcelasListScreen({ route, navigation }: Props): JSX.Element {
 
   return (
     <Screen>
+      {fromCache && cachedAt ? (
+        <View style={styles.cacheBanner}>
+          <Text style={styles.cacheBannerText}>
+            Sin conexión · Datos guardados {formatCacheAge(cachedAt)}
+          </Text>
+        </View>
+      ) : null}
       <View style={styles.header}>
         <Text style={styles.title}>Parcelas</Text>
         <Button
@@ -310,6 +350,21 @@ function StatCell({
 }
 
 const styles = StyleSheet.create({
+  cacheBanner: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#D08A2A',
+    borderWidth: 1,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
+    marginBottom: theme.spacing.sm,
+  },
+  cacheBannerText: {
+    color: '#7A5000',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',

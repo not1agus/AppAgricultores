@@ -49,15 +49,22 @@ export const parcelasService = {
     return api.get<Parcela>(`/parcelas/${id}`);
   },
   create(input: CreateParcelaInput): Promise<Parcela> {
-    return api.post<Parcela>('/parcelas', input);
+    return api.post<Parcela>('/parcelas', input, {
+      enqueueOnOffline: { label: `Crear parcela "${input.name}"` },
+    });
   },
   createFromSigpac(input: CreateParcelaFromSigpacInput): Promise<Parcela> {
+    // No SIGPAC lookup offline — the external WFS won't be reachable anyway
     return api.post<Parcela>('/parcelas/from-sigpac', input);
   },
   update(id: string, input: UpdateParcelaInput): Promise<Parcela> {
-    return api.patch<Parcela>(`/parcelas/${id}`, input);
+    return api.patch<Parcela>(`/parcelas/${id}`, input, {
+      enqueueOnOffline: { label: 'Editar parcela' },
+    });
   },
   remove(id: string): Promise<void> {
-    return api.delete<void>(`/parcelas/${id}`);
+    return api.delete<void>(`/parcelas/${id}`, {
+      enqueueOnOffline: { label: 'Eliminar parcela' },
+    });
   },
 };

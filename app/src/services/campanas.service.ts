@@ -34,12 +34,18 @@ export const campanasService = {
     return api.get<Campana>(`/campanas/${id}`);
   },
   create(input: CreateCampanaInput): Promise<Campana> {
-    return api.post<Campana>('/campanas', input);
+    return api.post<Campana>('/campanas', input, {
+      enqueueOnOffline: { label: `Crear campaña "${input.name}"` },
+    });
   },
   update(id: string, input: UpdateCampanaInput): Promise<Campana> {
-    return api.patch<Campana>(`/campanas/${id}`, input);
+    return api.patch<Campana>(`/campanas/${id}`, input, {
+      enqueueOnOffline: { label: 'Editar campaña' },
+    });
   },
   remove(id: string): Promise<void> {
-    return api.delete<void>(`/campanas/${id}`);
+    return api.delete<void>(`/campanas/${id}`, {
+      enqueueOnOffline: { label: 'Eliminar campaña' },
+    });
   },
 };

@@ -89,27 +89,31 @@ function extractGeometry(geojson: unknown): GeoJsonGeometry {
   throw new SigpacServiceError('Unexpected GeoJSON structure from SIGPAC');
 }
 
+// Fields already in hectares from sigpac-hubcloud CSP API
+const HA_FIELDS = new Set(['superficie', 'area_ha']);
+
 function extractAreaHa(geojson: unknown): number | null {
   const fc = geojson as Record<string, unknown>;
   const features = fc['features'] as Array<Record<string, unknown>> | undefined;
   if (!features?.length) return null;
 
-  let totalM2 = 0;
+  let totalHa = 0;
   let found = false;
   for (const feat of features) {
     const props = feat['properties'] as Record<string, unknown> | null;
     if (!props) continue;
-    for (const key of ['dn_surface', 'superficie', 'area_ha', 'area']) {
+    for (const key of ['superficie', 'dn_surface', 'area_ha', 'area']) {
       const val = props[key];
       if (val === undefined || val === null) continue;
       const num = Number(val);
       if (!Number.isFinite(num)) continue;
-      totalM2 += /ha/i.test(key) ? num * 10_000 : num;
+      // superficie and area_ha come in hectares; dn_surface / area come in m²
+      totalHa += HA_FIELDS.has(key) ? num : num / 10_000;
       found = true;
       break;
     }
   }
-  return found ? totalM2 / 10_000 : null;
+  return found ? totalHa : null;
 }
 
 export const sigpacService = {

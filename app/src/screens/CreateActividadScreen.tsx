@@ -31,7 +31,10 @@ import {
 import { Campana, campanasService } from '@/services/campanas.service';
 import { OfflineQueuedError } from '@/services/mutationQueue.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
-import { scheduleDeadlineNotification } from '@/services/notifications.service';
+import {
+  scheduleDeadlineNotification,
+  scheduleRegistroReminder,
+} from '@/services/notifications.service';
 import { uploadActividadImage } from '@/services/storage.service';
 import { theme } from '@/theme';
 import { typography } from '@/typography';
@@ -236,6 +239,7 @@ export function CreateActividadScreen({
           fitosanitarioPayload.plazoSeguridadDias,
           performedAt,
         );
+        void scheduleRegistroReminder(created.id, parcelaName, performedAt);
       }
       navigation.replace('ActividadDetail', {
         actividadId: created.id,

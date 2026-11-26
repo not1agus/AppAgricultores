@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
 import { campanasService } from '@/services/campanas.service';
+import { scheduleCampanaNotifications } from '@/services/notifications.service';
 import { theme } from '@/theme';
 import { typography } from '@/typography';
 
@@ -75,6 +76,12 @@ export function EditCampanaScreen({ route, navigation }: Props): JSX.Element {
         // Empty field -> null clears the end date (reopens the campaign).
         endDate: trimmedEnd.length > 0 ? trimmedEnd : null,
       });
+      void scheduleCampanaNotifications(
+        campanaId,
+        name.trim(),
+        startDate,
+        trimmedEnd.length > 0 ? trimmedEnd : null,
+      );
       navigation.goBack();
     } catch (err) {
       setError(

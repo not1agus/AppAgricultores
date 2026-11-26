@@ -18,6 +18,7 @@ import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
 import { Campana, campanasService } from '@/services/campanas.service';
+import { cancelCampanaNotifications } from '@/services/notifications.service';
 import {
   CampanaSummary,
   Transaccion,
@@ -318,6 +319,7 @@ export function CampanaDetailScreen({
     setError(null);
     try {
       await campanasService.remove(campana.id);
+      void cancelCampanaNotifications(campana.id);
       navigation.goBack();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar');

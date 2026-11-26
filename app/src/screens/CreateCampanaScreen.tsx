@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
 import { campanasService } from '@/services/campanas.service';
+import { scheduleCampanaNotifications } from '@/services/notifications.service';
 import { theme } from '@/theme';
 import { typography } from '@/typography';
 
@@ -52,6 +53,12 @@ export function CreateCampanaScreen({ route, navigation }: Props): JSX.Element {
         startDate,
         ...(trimmedEnd.length > 0 ? { endDate: trimmedEnd } : {}),
       });
+      void scheduleCampanaNotifications(
+        created.id,
+        created.name,
+        created.startDate,
+        created.endDate ?? null,
+      );
       navigation.replace('CampanaDetail', {
         campanaId: created.id,
         campanaName: created.name,

@@ -20,7 +20,7 @@ import {
   actividadesService,
 } from '@/services/actividades.service';
 import { Campana, campanasService } from '@/services/campanas.service';
-import { exportCuadernoPdf } from '@/services/cuadernoExport.pdf';
+import { exportCuadernoPdf } from '@/services/cuadernoExportPdf';
 import { Finca, fincasService } from '@/services/fincas.service';
 import { Parcela, parcelasService } from '@/services/parcelas.service';
 import { theme } from '@/theme';

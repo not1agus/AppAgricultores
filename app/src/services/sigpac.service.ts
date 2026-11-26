@@ -8,6 +8,8 @@ import { api } from '@/services/api';
 export interface SigpacReference {
   provincia: string;
   municipio: string;
+  agregado?: string;
+  zona?: string;
   poligono: string;
   parcela: string;
   recinto?: string;

@@ -14,6 +14,8 @@ export const sigpacReferenceSchema = z
   .object({
     provincia: numericString.max(2),
     municipio: numericString.max(3),
+    agregado: numericString.max(3).optional(),
+    zona: numericString.max(3).optional(),
     poligono: numericString.max(5),
     parcela: numericString.max(5),
     recinto: numericString.max(5).optional(),

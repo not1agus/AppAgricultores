@@ -30,6 +30,8 @@ const DIGITS_RE = /^\d+$/;
 interface SigpacForm {
   provincia: string;
   municipio: string;
+  agregado: string;
+  zona: string;
   poligono: string;
   parcela: string;
   recinto: string;
@@ -38,13 +40,14 @@ interface SigpacForm {
 const EMPTY_SIGPAC: SigpacForm = {
   provincia: '',
   municipio: '',
+  agregado: '0',
+  zona: '0',
   poligono: '',
   parcela: '',
   recinto: '',
 };
 
 function buildReference(form: SigpacForm): SigpacReference | string {
-  // Returns either a valid reference or an error string for the user.
   const required: Array<[keyof SigpacForm, string, number]> = [
     ['provincia', 'Provincia', 2],
     ['municipio', 'Municipio', 3],
@@ -57,6 +60,10 @@ function buildReference(form: SigpacForm): SigpacReference | string {
     if (!DIGITS_RE.test(v)) return `${label} sólo admite dígitos.`;
     if (v.length > max) return `${label} máximo ${max} dígitos.`;
   }
+  for (const [key, label] of [['agregado', 'Agregado'], ['zona', 'Zona']] as const) {
+    const v = form[key].trim();
+    if (v.length > 0 && !DIGITS_RE.test(v)) return `${label} sólo admite dígitos.`;
+  }
   const recinto = form.recinto.trim();
   if (recinto.length > 0) {
     if (!DIGITS_RE.test(recinto)) return 'Recinto sólo admite dígitos.';
@@ -65,6 +72,8 @@ function buildReference(form: SigpacForm): SigpacReference | string {
   const ref: SigpacReference = {
     provincia: form.provincia.trim(),
     municipio: form.municipio.trim(),
+    agregado: form.agregado.trim() || '0',
+    zona: form.zona.trim() || '0',
     poligono: form.poligono.trim(),
     parcela: form.parcela.trim(),
   };
@@ -227,8 +236,7 @@ export function CreateParcelaScreen({
           <>
             <Text style={styles.sectionTitle}>Referencia SIGPAC</Text>
             <Text style={styles.help}>
-              Introduce los códigos sin ceros sobrantes. Recinto es opcional;
-              si lo omites se usa el conjunto de la parcela.
+              Introduce los códigos SIGPAC sin ceros sobrantes. Agregado y Zona suelen ser 0. Recinto es opcional; si lo omites se usan todos los recintos de la parcela.
             </Text>
 
             <View style={styles.refRow}>
@@ -246,6 +254,24 @@ export function CreateParcelaScreen({
                   label="Municipio"
                   value={sigpacForm.municipio}
                   onChangeText={(v) => setSigpacField('municipio', v)}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+              <View style={styles.refCellSmall}>
+                <TextField
+                  label="Agr."
+                  value={sigpacForm.agregado}
+                  onChangeText={(v) => setSigpacField('agregado', v)}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+              <View style={styles.refCellSmall}>
+                <TextField
+                  label="Zona"
+                  value={sigpacForm.zona}
+                  onChangeText={(v) => setSigpacField('zona', v)}
                   keyboardType="number-pad"
                   maxLength={3}
                 />

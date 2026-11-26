@@ -10,6 +10,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ParcelaMap } from '@/components/ParcelaMap';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
@@ -339,6 +340,9 @@ export function CreateParcelaScreen({
                     {sigpacResult.geometry.type}
                   </Text>
                 </View>
+                <ParcelaMap
+                  shapes={[{ geometry: sigpacResult.geometry, label: '' }]}
+                />
               </Card>
             ) : (
               <Text style={styles.help}>

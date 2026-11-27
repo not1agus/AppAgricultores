@@ -19,10 +19,6 @@ const isoDate = z
 const photosArray = z.array(z.string().url()).max(20);
 
 // --- Cuaderno fitosanitario (RD 1311/2012) -----------------------------------
-// Only the regulated subset: product, registration number, target pest, dose
-// + unit, safety period, optional volume of water and applicator licence
-// (carnet de aplicador). Everything optional in the regulation that we don't
-// expose yet stays out so the form doesn't bloat — easy to extend later.
 export const fitosanitarioDosisUnitSchema = z.enum([
   'kg/ha',
   'L/ha',
@@ -42,20 +38,62 @@ export const FITOSANITARIO_DOSIS_UNITS: FitosanitarioDosisUnit[] = [
   '%',
 ];
 
+export const cantidadUnidadSchema = z.enum(['kg', 'L']);
+export type CantidadUnidad = z.infer<typeof cantidadUnidadSchema>;
+
+// DNI (8 dígitos + letra), NIE (X/Y/Z + 7 dígitos + letra) o CIF (letra + 7
+// dígitos + dígito/letra). Solo formato: la letra de control no se calcula.
+export const NIF_RE = /^([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z]|[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J])$/;
+
+const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
+const optionalNif = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(NIF_RE, 'NIF/NIE/CIF con formato inválido')
+  .nullable()
+  .optional();
+
+// Campos del Cuaderno Digital de Explotación (RD 1311/2012 Anexo III Parte
+// I.B; Orden APA/204/2023 Anexo II.3) son opcionales al guardar para no
+// invalidar registros antiguos ni obligar a conocer la eficacia el mismo día:
+// la exportación CDE es quien exige que estén completos.
 export const fitosanitarioSchema = z
   .object({
     productoComercial: z.string().trim().min(1).max(200),
     numeroRegistro: z.string().trim().min(1).max(50),
-    materiaActiva: z.string().trim().max(200).nullable().optional(),
+    materiaActiva: optionalText(200),
     dosis: z.number().positive(),
     dosisUnidad: fitosanitarioDosisUnitSchema,
     plagaObjetivo: z.string().trim().min(1).max(200),
     plazoSeguridadDias: z.number().int().min(0).max(365),
     volumenCaldoLHa: z.number().positive().nullable().optional(),
-    operadorNombre: z.string().trim().max(200).nullable().optional(),
-    operadorCarnet: z.string().trim().max(50).nullable().optional(),
+    operadorNombre: optionalText(200),
+    operadorCarnet: optionalText(50),
+    cultivoEspecie: optionalText(120),
+    cultivoVariedad: optionalText(120),
+    superficieTratadaHa: z.number().positive().max(100000).nullable().optional(),
+    justificacion: optionalText(500),
+    cantidadProducto: z.number().positive().max(1000000).nullable().optional(),
+    cantidadUnidad: cantidadUnidadSchema.nullable().optional(),
+    operadorNif: optionalNif,
+    operadorRopo: optionalText(50),
+    equipoDescripcion: optionalText(200),
+    equipoRoma: optionalText(50),
+    eficacia: optionalText(500),
+    asesorNombre: optionalText(200),
+    asesorNif: optionalNif,
+    asesorRopo: optionalText(50),
+    asesorFechaValidacion: isoDate.nullable().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (f) => (f.cantidadProducto == null) === (f.cantidadUnidad == null),
+    {
+      message: 'La cantidad de producto y su unidad van juntas',
+      path: ['cantidadUnidad'],
+    },
+  );
 export type Fitosanitario = z.infer<typeof fitosanitarioSchema>;
 
 export const actividadIdParamsSchema = z.object({

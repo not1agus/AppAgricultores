@@ -18,6 +18,7 @@ import type { MainStackParamList } from '@/navigation/types';
 import {
   ACTIVIDAD_TYPE_LABELS,
   Actividad,
+  Fitosanitario,
   actividadesService,
 } from '@/services/actividades.service';
 import { campanasService } from '@/services/campanas.service';
@@ -38,6 +39,30 @@ import { confirmDestructive } from '@/utils/confirm';
 const HISTORY_LIMIT = 4;
 
 type Props = NativeStackScreenProps<MainStackParamList, 'ActividadDetail'>;
+
+const dec = (n: number) => String(n).replace('.', ',');
+
+/** Datos del Cuaderno Digital que el usuario haya rellenado (sin huecos). */
+function cdeDetailRows(f: Fitosanitario): Array<[string, string]> {
+  const asesor = [f.asesorNombre, f.asesorNif, f.asesorRopo, f.asesorFechaValidacion]
+    .filter(Boolean)
+    .join(' · ');
+  const rows: Array<[string, string | null | undefined]> = [
+    ['Cultivo', [f.cultivoEspecie, f.cultivoVariedad].filter(Boolean).join(' · ')],
+    ['Superficie tratada', f.superficieTratadaHa != null ? `${dec(f.superficieTratadaHa)} ha` : null],
+    ['Justificación', f.justificacion],
+    [
+      'Cantidad utilizada',
+      f.cantidadProducto != null ? `${dec(f.cantidadProducto)} ${f.cantidadUnidad ?? ''}`.trim() : null,
+    ],
+    ['NIF aplicador', f.operadorNif],
+    ['ROPO aplicador', f.operadorRopo],
+    ['Equipo', [f.equipoDescripcion, f.equipoRoma ? `ROMA ${f.equipoRoma}` : null].filter(Boolean).join(' · ')],
+    ['Eficacia', f.eficacia],
+    ['Asesor', asesor],
+  ];
+  return rows.filter((r): r is [string, string] => Boolean(r[1]));
+}
 
 function fmtEur(n: number | null): string {
   if (n === null) return '—';
@@ -389,6 +414,12 @@ export function ActividadDetailScreen({
                   </Text>
                 </View>
               ) : null}
+              {cdeDetailRows(actividad.fitosanitario).map(([label, value]) => (
+                <View key={label} style={styles.row}>
+                  <Text style={styles.label}>{label}</Text>
+                  <Text style={styles.value}>{value}</Text>
+                </View>
+              ))}
             </Card>
           </>
         ) : null}

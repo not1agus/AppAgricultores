@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,6 +15,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { CdeExportModal } from '@/components/CdeExportModal';
 import { OfflineBadge } from '@/components/OfflineBadge';
 import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
@@ -26,7 +27,7 @@ import {
   actividadesService,
 } from '@/services/actividades.service';
 import { NetworkError } from '@/services/api';
-import { exportCdeFitosanitariosCsv } from '@/services/cdeExport.service';
+import type { CdeProblem } from '@/services/cdeExport.service';
 import { exportActividadesCsv } from '@/services/cuadernoExport.service';
 import { exportCuadernoPdf } from '@/services/cuadernoExportPdf';
 import { fincasService } from '@/services/fincas.service';
@@ -167,7 +168,9 @@ export function ActividadesListScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [exportingCde, setExportingCde] = useState(false);
+  const [cdeOpen, setCdeOpen] = useState(false);
+  // Set when the user leaves the CDE modal to fix data; reopens it on return.
+  const reopenCdeRef = useRef(false);
   const [breakdownExpanded, setBreakdownExpanded] = useState(true);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -204,6 +207,14 @@ export function ActividadesListScreen({
       return false;
     });
   }, [actividades, normalisedQuery, parcelasById]);
+
+  const fitoIds = useMemo(
+    () =>
+      searchedActividades
+        .filter((a) => a.type === 'tratamiento_fitosanitario')
+        .map((a) => a.id),
+    [searchedActividades],
+  );
 
   const buckets = useMemo(
     () => bucketByType(searchedActividades),
@@ -271,7 +282,12 @@ export function ActividadesListScreen({
 
   useEffect(() => {
     const unsub = navigation.addListener('focus', () => {
-      void load();
+      void load().then(() => {
+        if (reopenCdeRef.current) {
+          reopenCdeRef.current = false;
+          setCdeOpen(true);
+        }
+      });
     });
     void load().finally(() => setLoading(false));
     return unsub;
@@ -315,17 +331,14 @@ export function ActividadesListScreen({
     }
   }
 
-  async function handleExportCde(): Promise<void> {
-    if (exportingCde) return;
-    setError(null);
-    setExportingCde(true);
-    try {
-      const finca = await fincasService.getById(fincaId);
-      await exportCdeFitosanitariosCsv(finca.name, searchedActividades, parcelas);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo exportar para CDE');
-    } finally {
-      setExportingCde(false);
+  function handleCdeFix(problem: CdeProblem): void {
+    // RN Modal stays above pushed screens, so close it and reopen on return.
+    setCdeOpen(false);
+    reopenCdeRef.current = true;
+    if (problem.fixIn === 'parcela') {
+      navigation.navigate('EditParcela', { parcelaId: problem.parcelaId });
+    } else {
+      navigation.navigate('EditActividad', { actividadId: problem.actividadId, fincaId });
     }
   }
 
@@ -371,13 +384,8 @@ export function ActividadesListScreen({
           <Button
             title="CDE"
             variant="ghost"
-            onPress={handleExportCde}
-            loading={exportingCde}
-            disabled={
-              searchedActividades.filter(
-                (a) => a.type === 'tratamiento_fitosanitario',
-              ).length === 0
-            }
+            onPress={() => setCdeOpen(true)}
+            disabled={fitoIds.length === 0}
           />
           <View style={{ width: theme.spacing.xs }} />
           <Button
@@ -556,6 +564,13 @@ export function ActividadesListScreen({
             </Card>
           );
         }}
+      />
+      <CdeExportModal
+        visible={cdeOpen}
+        fincaId={fincaId}
+        actividadIds={fitoIds}
+        onClose={() => setCdeOpen(false)}
+        onFix={handleCdeFix}
       />
     </Screen>
   );

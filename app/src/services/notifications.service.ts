@@ -122,7 +122,7 @@ export async function cancelDeadlineNotification(actividadId: string): Promise<v
   await writeMap(map);
 }
 
-// ─── Registro CDE reminder (RD 1311/2012 — 7-day deadline) ───────────────────
+// ─── Recordatorio para completar el registro del tratamiento ─────────────────
 
 const REGISTRO_MAP_KEY = 'notif_registro_map_v1';
 
@@ -142,9 +142,9 @@ async function writeRegistroMap(map: Record<string, string>): Promise<void> {
 }
 
 /**
- * Schedule a reminder to register a phytosanitary treatment in the official
- * field notebook. Fires 5 days after the treatment — a 2-day buffer before
- * the 7-day regulatory deadline imposed by RD 1311/2012.
+ * Recordatorio 5 días después del tratamiento para valorar la eficacia y
+ * revisar que el registro esté completo para el CDE. No es un plazo legal: la
+ * norma (art. 16.5 RD 1311/2012) pide volcar los datos al menos mensualmente.
  */
 export async function scheduleRegistroReminder(
   actividadId: string,
@@ -164,8 +164,8 @@ export async function scheduleRegistroReminder(
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: '📋 Registra el tratamiento fitosanitario',
-      body: `${parcelaName} — tienes hasta mañana para anotarlo en el cuaderno oficial (plazo: 7 días)`,
+      title: '📋 Completa el registro del tratamiento',
+      body: `${parcelaName} — anota la eficacia y revisa los datos para el Cuaderno Digital (hay que volcarlos al menos cada mes)`,
       data: { actividadId, type: 'registro_reminder' },
     },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt },

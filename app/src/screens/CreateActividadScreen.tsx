@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -105,6 +105,53 @@ export function CreateActividadScreen({
   const [fitoDraft, setFitoDraft] = useState<FitosanitarioDraft>(
     EMPTY_FITOSANITARIO_DRAFT,
   );
+  const [prefillNote, setPrefillNote] = useState<string | null>(null);
+  // What we copied from the parcela's previous treatment, so switching parcela
+  // removes it again unless the user has edited it meanwhile.
+  const prefilledRef = useRef<{ especie: string; variedad: string } | null>(null);
+  const draftRef = useRef(fitoDraft);
+  draftRef.current = fitoDraft;
+
+  useEffect(() => {
+    if (!parcelaId) return;
+    let cancelled = false;
+
+    const prev = prefilledRef.current;
+    prefilledRef.current = null;
+    setPrefillNote(null);
+    if (prev) {
+      setFitoDraft((d) => ({
+        ...d,
+        cultivoEspecie: d.cultivoEspecie === prev.especie ? '' : d.cultivoEspecie,
+        cultivoVariedad: d.cultivoVariedad === prev.variedad ? '' : d.cultivoVariedad,
+      }));
+    }
+
+    void actividadesService
+      .list({ parcelaId, type: 'tratamiento_fitosanitario' })
+      .then((list) => {
+        if (cancelled) return;
+        const last = list.find(
+          (a) => a.fitosanitario?.cultivoEspecie || a.fitosanitario?.cultivoVariedad,
+        );
+        if (!last?.fitosanitario) return;
+        const current = draftRef.current;
+        if (current.cultivoEspecie.trim() || current.cultivoVariedad.trim()) return;
+        const especie = last.fitosanitario.cultivoEspecie ?? '';
+        const variedad = last.fitosanitario.cultivoVariedad ?? '';
+        prefilledRef.current = { especie, variedad };
+        setFitoDraft((d) => ({ ...d, cultivoEspecie: especie, cultivoVariedad: variedad }));
+        setPrefillNote(
+          `Cultivo y variedad copiados de tu tratamiento del ${last.performedAt} en esta parcela. Revísalos.`,
+        );
+      })
+      .catch(() => {
+        /* silent: prefill is a convenience, the fields stay empty */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [parcelaId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -394,6 +441,8 @@ export function CreateActividadScreen({
             value={fitoDraft}
             onChange={setFitoDraft}
             disabled={submitting}
+            parcelaAreaHa={parcelas.find((p) => p.id === parcelaId)?.areaHa ?? null}
+            prefillNote={prefillNote}
           />
         ) : null}
 

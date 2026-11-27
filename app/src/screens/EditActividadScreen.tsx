@@ -110,6 +110,7 @@ export function EditActividadScreen({
   // Parcela name — resolved during initial load; used to re-schedule the
   // plazo de seguridad notification if the user edits a tratamiento.
   const [parcelaName, setParcelaName] = useState('');
+  const [parcelaAreaHa, setParcelaAreaHa] = useState<number | null>(null);
 
   // Optional campaña tag. campanaId === null means "not tagged".
   const [campanas, setCampanas] = useState<Campana[]>([]);
@@ -137,7 +138,10 @@ export function EditActividadScreen({
         void parcelasService
           .getById(a.parcelaId)
           .then((p) => {
-            if (!cancelled) setParcelaName(p.name);
+            if (!cancelled) {
+              setParcelaName(p.name);
+              setParcelaAreaHa(p.areaHa);
+            }
             return campanasService.listByFinca(p.fincaId);
           })
           .then((list) => {
@@ -385,6 +389,7 @@ export function EditActividadScreen({
             value={fitoDraft}
             onChange={setFitoDraft}
             disabled={submitting}
+            parcelaAreaHa={parcelaAreaHa}
           />
         ) : null}
 

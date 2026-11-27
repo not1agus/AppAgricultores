@@ -45,6 +45,13 @@ export const FITOSANITARIO_DOSIS_UNITS: FitosanitarioDosisUnit[] = [
   '%',
 ];
 
+export type CantidadUnidad = 'kg' | 'L';
+export const CANTIDAD_UNIDADES: CantidadUnidad[] = ['kg', 'L'];
+
+/** Mismo formato que el backend (NIF_RE en actividades.types.ts). */
+export const NIF_RE =
+  /^([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z]|[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J])$/;
+
 export interface Fitosanitario {
   productoComercial: string;
   numeroRegistro: string;
@@ -56,6 +63,22 @@ export interface Fitosanitario {
   volumenCaldoLHa?: number | null;
   operadorNombre?: string | null;
   operadorCarnet?: string | null;
+  // Campos del Cuaderno Digital de Explotación (exigidos al exportar al CDE).
+  cultivoEspecie?: string | null;
+  cultivoVariedad?: string | null;
+  superficieTratadaHa?: number | null;
+  justificacion?: string | null;
+  cantidadProducto?: number | null;
+  cantidadUnidad?: CantidadUnidad | null;
+  operadorNif?: string | null;
+  operadorRopo?: string | null;
+  equipoDescripcion?: string | null;
+  equipoRoma?: string | null;
+  eficacia?: string | null;
+  asesorNombre?: string | null;
+  asesorNif?: string | null;
+  asesorRopo?: string | null;
+  asesorFechaValidacion?: string | null;
 }
 
 export interface Actividad {

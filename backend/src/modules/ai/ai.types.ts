@@ -19,3 +19,7 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export interface ChatResponse {
   reply: string;
 }
+
+export interface CdeReviewResponse {
+  review: string;
+}

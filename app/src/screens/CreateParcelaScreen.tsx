@@ -16,6 +16,9 @@ import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
 import { parcelasService } from '@/services/parcelas.service';
 import {
+  buildSigpacReference,
+  EMPTY_SIGPAC_FORM,
+  SigpacForm,
   SigpacParcelResult,
   SigpacReference,
   sigpacService,
@@ -25,62 +28,6 @@ import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CreateParcela'>;
 type Mode = 'sigpac' | 'manual';
-
-const DIGITS_RE = /^\d+$/;
-
-interface SigpacForm {
-  provincia: string;
-  municipio: string;
-  agregado: string;
-  zona: string;
-  poligono: string;
-  parcela: string;
-  recinto: string;
-}
-
-const EMPTY_SIGPAC: SigpacForm = {
-  provincia: '',
-  municipio: '',
-  agregado: '0',
-  zona: '0',
-  poligono: '',
-  parcela: '',
-  recinto: '',
-};
-
-function buildReference(form: SigpacForm): SigpacReference | string {
-  const required: Array<[keyof SigpacForm, string, number]> = [
-    ['provincia', 'Provincia', 2],
-    ['municipio', 'Municipio', 3],
-    ['poligono', 'Polígono', 5],
-    ['parcela', 'Parcela', 5],
-  ];
-  for (const [key, label, max] of required) {
-    const v = form[key].trim();
-    if (v.length === 0) return `Falta ${label}.`;
-    if (!DIGITS_RE.test(v)) return `${label} sólo admite dígitos.`;
-    if (v.length > max) return `${label} máximo ${max} dígitos.`;
-  }
-  for (const [key, label] of [['agregado', 'Agregado'], ['zona', 'Zona']] as const) {
-    const v = form[key].trim();
-    if (v.length > 0 && !DIGITS_RE.test(v)) return `${label} sólo admite dígitos.`;
-  }
-  const recinto = form.recinto.trim();
-  if (recinto.length > 0) {
-    if (!DIGITS_RE.test(recinto)) return 'Recinto sólo admite dígitos.';
-    if (recinto.length > 5) return 'Recinto máximo 5 dígitos.';
-  }
-  const ref: SigpacReference = {
-    provincia: form.provincia.trim(),
-    municipio: form.municipio.trim(),
-    agregado: form.agregado.trim() || '0',
-    zona: form.zona.trim() || '0',
-    poligono: form.poligono.trim(),
-    parcela: form.parcela.trim(),
-  };
-  if (recinto.length > 0) ref.recinto = recinto;
-  return ref;
-}
 
 function parseEsNumber(raw: string): number | null {
   const trimmed = raw.replace(',', '.').trim();
@@ -105,7 +52,7 @@ export function CreateParcelaScreen({
   const [error, setError] = useState<string | null>(null);
 
   // SIGPAC mode state
-  const [sigpacForm, setSigpacForm] = useState<SigpacForm>(EMPTY_SIGPAC);
+  const [sigpacForm, setSigpacForm] = useState<SigpacForm>(EMPTY_SIGPAC_FORM);
   const [lookingUp, setLookingUp] = useState(false);
   const [sigpacResult, setSigpacResult] = useState<SigpacParcelResult | null>(
     null,
@@ -123,7 +70,7 @@ export function CreateParcelaScreen({
   }
 
   async function onLookup(): Promise<void> {
-    const refOrErr = buildReference(sigpacForm);
+    const refOrErr = buildSigpacReference(sigpacForm);
     if (typeof refOrErr === 'string') {
       setError(refOrErr);
       return;
@@ -154,7 +101,7 @@ export function CreateParcelaScreen({
     try {
       let created;
       if (mode === 'sigpac') {
-        const refOrErr = buildReference(sigpacForm);
+        const refOrErr = buildSigpacReference(sigpacForm);
         if (typeof refOrErr === 'string') {
           setError(refOrErr);
           setSubmitting(false);

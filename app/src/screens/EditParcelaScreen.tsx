@@ -6,11 +6,39 @@ import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import type { MainStackParamList } from '@/navigation/types';
-import { parcelasService } from '@/services/parcelas.service';
+import { GeoJsonPolygon, parcelasService } from '@/services/parcelas.service';
+import {
+  buildSigpacReference,
+  SigpacForm,
+  SigpacReference,
+  sigpacService,
+} from '@/services/sigpac.service';
 import { theme } from '@/theme';
 import { typography } from '@/typography';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'EditParcela'>;
+
+const SIGPAC_FIELDS: Array<[keyof SigpacForm, string]> = [
+  ['provincia', 'Provincia'],
+  ['municipio', 'Municipio'],
+  ['agregado', 'Agregado'],
+  ['zona', 'Zona'],
+  ['poligono', 'Polígono'],
+  ['parcela', 'Parcela'],
+  ['recinto', 'Recinto'],
+];
+
+function refToForm(ref: SigpacReference | null): SigpacForm {
+  return {
+    provincia: ref?.provincia ?? '',
+    municipio: ref?.municipio ?? '',
+    agregado: ref?.agregado ?? '',
+    zona: ref?.zona ?? '',
+    poligono: ref?.poligono ?? '',
+    parcela: ref?.parcela ?? '',
+    recinto: ref?.recinto ?? '',
+  };
+}
 
 function parseEsNumber(raw: string): number | null {
   const trimmed = raw.replace(',', '.').trim();
@@ -24,6 +52,12 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
 
   const [name, setName] = useState('');
   const [areaHa, setAreaHa] = useState('');
+  // SIGPAC parts already stored are read-only (changing them would point at
+  // another recinto); missing parts — or the whole reference — can be added,
+  // and are verified against the official SIGPAC service before saving.
+  const [sigpacRef, setSigpacRef] = useState<SigpacReference | null>(null);
+  const [hasGeometry, setHasGeometry] = useState(false);
+  const [sigpacForm, setSigpacForm] = useState<SigpacForm>(refToForm(null));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +70,9 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
         if (cancelled) return;
         setName(p.name);
         setAreaHa(p.areaHa !== null ? String(p.areaHa) : '');
+        setSigpacRef(p.sigpacRef);
+        setHasGeometry(p.geometry !== null);
+        setSigpacForm(refToForm(p.sigpacRef));
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -58,6 +95,31 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
     return null;
   }
 
+  function sigpacEdited(): boolean {
+    const stored = refToForm(sigpacRef);
+    return SIGPAC_FIELDS.some(([k]) => sigpacForm[k].trim() !== stored[k]);
+  }
+
+  /** Verifica la referencia en SIGPAC; devuelve error o el patch a guardar. */
+  async function verifiedSigpacPatch(): Promise<
+    string | { sigpacRef: SigpacReference; geometry?: GeoJsonPolygon }
+  > {
+    const refOrErr = buildSigpacReference(sigpacForm);
+    if (typeof refOrErr === 'string') return refOrErr;
+    if (!refOrErr.recinto) return 'Indica el recinto SIGPAC (lo exige el Cuaderno Digital).';
+    try {
+      const result = await sigpacService.lookup(refOrErr);
+      return {
+        sigpacRef: result.reference,
+        ...(hasGeometry ? {} : { geometry: result.geometry }),
+      };
+    } catch (err) {
+      return `No se ha encontrado esa referencia en SIGPAC: ${
+        err instanceof Error ? err.message : 'error de consulta'
+      }`;
+    }
+  }
+
   async function onSubmit(): Promise<void> {
     const v = validationError();
     if (v) {
@@ -69,9 +131,19 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
     try {
       // Empty areaHa explicitly clears it (PATCH accepts null).
       const area = areaHa.trim().length > 0 ? parseEsNumber(areaHa) : null;
+      let sigpacPatch = {};
+      if (sigpacEdited()) {
+        const patchOrErr = await verifiedSigpacPatch();
+        if (typeof patchOrErr === 'string') {
+          setError(patchOrErr);
+          return;
+        }
+        sigpacPatch = patchOrErr;
+      }
       await parcelasService.update(parcelaId, {
         name: name.trim(),
         areaHa: area,
+        ...sigpacPatch,
       });
       navigation.goBack();
     } catch (err) {
@@ -96,10 +168,6 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
   return (
     <Screen>
       <Text style={styles.title}>Editar parcela</Text>
-      <Text style={styles.note}>
-        La referencia SIGPAC y la geometría no se editan desde aquí — si
-        necesitas cambiarlas, elimina la parcela y créala de nuevo.
-      </Text>
 
       <TextField
         label="Nombre"
@@ -114,6 +182,26 @@ export function EditParcelaScreen({ route, navigation }: Props): JSX.Element {
         placeholder="Ej. 3,25"
         keyboardType="decimal-pad"
       />
+
+      <Text style={styles.sectionTitle}>Referencia SIGPAC</Text>
+      <Text style={styles.note}>
+        {sigpacRef
+          ? 'Los datos que ya tiene no se pueden cambiar. Completa los que faltan; se comprueban en SIGPAC al guardar.'
+          : 'Esta parcela no tiene referencia SIGPAC (la exige el Cuaderno Digital). Añádela; se comprueba en SIGPAC al guardar.'}
+      </Text>
+      {SIGPAC_FIELDS.map(([key, label]) => {
+        const stored = sigpacRef ? refToForm(sigpacRef)[key] : '';
+        return (
+          <TextField
+            key={key}
+            label={stored ? label : `${label} — falta`}
+            value={sigpacForm[key]}
+            onChangeText={(v) => setSigpacForm((f) => ({ ...f, [key]: v }))}
+            editable={!stored}
+            keyboardType="number-pad"
+          />
+        );
+      })}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -144,6 +232,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   note: {
     color: theme.colors.textMuted,

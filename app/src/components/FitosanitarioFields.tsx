@@ -1,27 +1,46 @@
+import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { TextField } from '@/components/TextField';
 import {
+  CANTIDAD_UNIDADES,
+  CantidadUnidad,
   FITOSANITARIO_DOSIS_UNITS,
   Fitosanitario,
   FitosanitarioDosisUnit,
+  NIF_RE,
 } from '@/services/actividades.service';
 import { theme } from '@/theme';
 
 // String-form mirror of Fitosanitario: every field is a TextField string so
-// validation lives in one place (parseFitosanitarioDraft) and the parent screen
-// doesn't have to special-case "user typed '12,5' but the API expects 12.5".
+// validation lives in one place (parseFitosanitarioDraft). Units start empty
+// on purpose — the user must pick one, nothing is preselected for them.
 export interface FitosanitarioDraft {
   productoComercial: string;
   numeroRegistro: string;
   materiaActiva: string;
   dosis: string;
-  dosisUnidad: FitosanitarioDosisUnit;
+  dosisUnidad: FitosanitarioDosisUnit | '';
   plagaObjetivo: string;
   plazoSeguridadDias: string;
   volumenCaldoLHa: string;
   operadorNombre: string;
   operadorCarnet: string;
+  cultivoEspecie: string;
+  cultivoVariedad: string;
+  superficieTratadaHa: string;
+  justificacion: string;
+  cantidadProducto: string;
+  cantidadUnidad: CantidadUnidad | '';
+  operadorNif: string;
+  operadorRopo: string;
+  equipoDescripcion: string;
+  equipoRoma: string;
+  eficacia: string;
+  asesorNombre: string;
+  asesorNif: string;
+  asesorRopo: string;
+  asesorFechaValidacion: string;
 }
 
 export const EMPTY_FITOSANITARIO_DRAFT: FitosanitarioDraft = {
@@ -29,13 +48,32 @@ export const EMPTY_FITOSANITARIO_DRAFT: FitosanitarioDraft = {
   numeroRegistro: '',
   materiaActiva: '',
   dosis: '',
-  dosisUnidad: 'L/ha',
+  dosisUnidad: '',
   plagaObjetivo: '',
   plazoSeguridadDias: '',
   volumenCaldoLHa: '',
   operadorNombre: '',
   operadorCarnet: '',
+  cultivoEspecie: '',
+  cultivoVariedad: '',
+  superficieTratadaHa: '',
+  justificacion: '',
+  cantidadProducto: '',
+  cantidadUnidad: '',
+  operadorNif: '',
+  operadorRopo: '',
+  equipoDescripcion: '',
+  equipoRoma: '',
+  eficacia: '',
+  asesorNombre: '',
+  asesorNif: '',
+  asesorRopo: '',
+  asesorFechaValidacion: '',
 };
+
+function numToDraft(n: number | null | undefined): string {
+  return n === null || n === undefined ? '' : String(n).replace('.', ',');
+}
 
 export function fitosanitarioToDraft(
   f: Fitosanitario | null | undefined,
@@ -45,19 +83,28 @@ export function fitosanitarioToDraft(
     productoComercial: f.productoComercial,
     numeroRegistro: f.numeroRegistro,
     materiaActiva: f.materiaActiva ?? '',
-    dosis: f.dosis !== null && f.dosis !== undefined ? String(f.dosis) : '',
+    dosis: numToDraft(f.dosis),
     dosisUnidad: f.dosisUnidad,
     plagaObjetivo: f.plagaObjetivo,
-    plazoSeguridadDias:
-      f.plazoSeguridadDias !== null && f.plazoSeguridadDias !== undefined
-        ? String(f.plazoSeguridadDias)
-        : '',
-    volumenCaldoLHa:
-      f.volumenCaldoLHa !== null && f.volumenCaldoLHa !== undefined
-        ? String(f.volumenCaldoLHa)
-        : '',
+    plazoSeguridadDias: numToDraft(f.plazoSeguridadDias),
+    volumenCaldoLHa: numToDraft(f.volumenCaldoLHa),
     operadorNombre: f.operadorNombre ?? '',
     operadorCarnet: f.operadorCarnet ?? '',
+    cultivoEspecie: f.cultivoEspecie ?? '',
+    cultivoVariedad: f.cultivoVariedad ?? '',
+    superficieTratadaHa: numToDraft(f.superficieTratadaHa),
+    justificacion: f.justificacion ?? '',
+    cantidadProducto: numToDraft(f.cantidadProducto),
+    cantidadUnidad: f.cantidadUnidad ?? '',
+    operadorNif: f.operadorNif ?? '',
+    operadorRopo: f.operadorRopo ?? '',
+    equipoDescripcion: f.equipoDescripcion ?? '',
+    equipoRoma: f.equipoRoma ?? '',
+    eficacia: f.eficacia ?? '',
+    asesorNombre: f.asesorNombre ?? '',
+    asesorNif: f.asesorNif ?? '',
+    asesorRopo: f.asesorRopo ?? '',
+    asesorFechaValidacion: f.asesorFechaValidacion ?? '',
   };
 }
 
@@ -68,14 +115,18 @@ function parseEsNumber(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function orNull(s: string): string | null {
+  const t = s.trim();
+  return t.length > 0 ? t : null;
+}
+
 export interface FitosanitarioParseResult {
   value?: Fitosanitario;
   error?: string;
 }
 
-// Returns parsed value or a Spanish-language error string suitable for the
-// form's existing error banner. Strict on required fields, lenient on optional
-// ones (empty → null).
+// Strict on required fields and on the format of anything the user typed;
+// CDE fields may stay empty here (the CDE export is what demands them).
 export function parseFitosanitarioDraft(
   d: FitosanitarioDraft,
 ): FitosanitarioParseResult {
@@ -97,6 +148,9 @@ export function parseFitosanitarioDraft(
   if (dosis === null || dosis <= 0) {
     return { error: 'Dosis inválida (mayor que 0).' };
   }
+  if (d.dosisUnidad === '') {
+    return { error: 'Elige la unidad de la dosis.' };
+  }
 
   const plazo = parseEsNumber(d.plazoSeguridadDias);
   if (plazo === null || plazo < 0 || !Number.isInteger(plazo) || plazo > 365) {
@@ -112,21 +166,74 @@ export function parseFitosanitarioDraft(
     volumenCaldoLHa = v;
   }
 
-  const materiaActiva = d.materiaActiva.trim();
-  const operadorNombre = d.operadorNombre.trim();
-  const operadorCarnet = d.operadorCarnet.trim();
+  let superficieTratadaHa: number | null = null;
+  if (d.superficieTratadaHa.trim().length > 0) {
+    const v = parseEsNumber(d.superficieTratadaHa);
+    if (v === null || v <= 0) {
+      return { error: 'Superficie tratada inválida (hectáreas mayor que 0).' };
+    }
+    superficieTratadaHa = v;
+  }
+
+  let cantidadProducto: number | null = null;
+  if (d.cantidadProducto.trim().length > 0) {
+    const v = parseEsNumber(d.cantidadProducto);
+    if (v === null || v <= 0) {
+      return { error: 'Cantidad de producto inválida (mayor que 0).' };
+    }
+    cantidadProducto = v;
+  }
+  if ((cantidadProducto === null) !== (d.cantidadUnidad === '')) {
+    return {
+      error:
+        cantidadProducto === null
+          ? 'Indica la cantidad de producto o quita la unidad.'
+          : 'Elige la unidad de la cantidad de producto (kg o L).',
+    };
+  }
+
+  const operadorNif = orNull(d.operadorNif)?.toUpperCase() ?? null;
+  if (operadorNif !== null && !NIF_RE.test(operadorNif)) {
+    return { error: 'NIF del aplicador con formato inválido.' };
+  }
+  const asesorNif = orNull(d.asesorNif)?.toUpperCase() ?? null;
+  if (asesorNif !== null && !NIF_RE.test(asesorNif)) {
+    return { error: 'NIF del asesor con formato inválido.' };
+  }
+  const asesorFechaValidacion = orNull(d.asesorFechaValidacion);
+  if (
+    asesorFechaValidacion !== null &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(asesorFechaValidacion)
+  ) {
+    return { error: 'Fecha de validación del asesor inválida (YYYY-MM-DD).' };
+  }
 
   const value: Fitosanitario = {
     productoComercial,
     numeroRegistro,
-    materiaActiva: materiaActiva.length > 0 ? materiaActiva : null,
+    materiaActiva: orNull(d.materiaActiva),
     dosis,
     dosisUnidad: d.dosisUnidad,
     plagaObjetivo,
     plazoSeguridadDias: plazo,
     volumenCaldoLHa,
-    operadorNombre: operadorNombre.length > 0 ? operadorNombre : null,
-    operadorCarnet: operadorCarnet.length > 0 ? operadorCarnet : null,
+    operadorNombre: orNull(d.operadorNombre),
+    operadorCarnet: orNull(d.operadorCarnet),
+    cultivoEspecie: orNull(d.cultivoEspecie),
+    cultivoVariedad: orNull(d.cultivoVariedad),
+    superficieTratadaHa,
+    justificacion: orNull(d.justificacion),
+    cantidadProducto,
+    cantidadUnidad: d.cantidadUnidad === '' ? null : d.cantidadUnidad,
+    operadorNif,
+    operadorRopo: orNull(d.operadorRopo),
+    equipoDescripcion: orNull(d.equipoDescripcion),
+    equipoRoma: orNull(d.equipoRoma),
+    eficacia: orNull(d.eficacia),
+    asesorNombre: orNull(d.asesorNombre),
+    asesorNif,
+    asesorRopo: orNull(d.asesorRopo),
+    asesorFechaValidacion,
   };
   return { value };
 }
@@ -135,12 +242,49 @@ interface Props {
   value: FitosanitarioDraft;
   onChange: (next: FitosanitarioDraft) => void;
   disabled?: boolean;
+  /** Superficie registrada de la parcela, para ofrecerla (nunca aplicarla sola). */
+  parcelaAreaHa?: number | null;
+  /** Aviso cuando algún campo se ha copiado de datos previos del usuario. */
+  prefillNote?: string | null;
+}
+
+function Chips<T extends string>({
+  label,
+  options,
+  selected,
+  onSelect,
+  disabled,
+}: {
+  label: string;
+  options: readonly T[];
+  selected: T | '';
+  onSelect: (v: T) => void;
+  disabled?: boolean;
+}): JSX.Element {
+  return (
+    <View>
+      <Text style={styles.unitLabel}>{label}</Text>
+      <View style={styles.chipsRow}>
+        {options.map((u) => (
+          <Text
+            key={u}
+            onPress={() => !disabled && onSelect(u)}
+            style={[styles.unitChip, u === selected && styles.unitChipSelected]}
+          >
+            {u}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
 }
 
 export function FitosanitarioFields({
   value,
   onChange,
   disabled,
+  parcelaAreaHa,
+  prefillNote,
 }: Props): JSX.Element {
   function patch<K extends keyof FitosanitarioDraft>(
     key: K,
@@ -149,108 +293,138 @@ export function FitosanitarioFields({
     onChange({ ...value, [key]: next });
   }
 
+  const field = (
+    key: keyof FitosanitarioDraft,
+    label: string,
+    extra: Partial<ComponentProps<typeof TextField>> = {},
+  ) => (
+    <TextField
+      label={label}
+      value={value[key]}
+      onChangeText={(t) => patch(key, t as never)}
+      editable={!disabled}
+      {...extra}
+    />
+  );
+
+  const multiline = { multiline: true, style: styles.multiline } as const;
+  const areaText =
+    parcelaAreaHa != null ? String(parcelaAreaHa).replace('.', ',') : null;
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.sectionTitle}>Cuaderno fitosanitario</Text>
       <Text style={styles.sectionHint}>
-        Datos requeridos por el RD 1311/2012. Quedan registrados de forma
-        estructurada para inspecciones y exportación.
+        * = obligatorio para guardar. CDE = obligatorio para exportar al
+        Cuaderno Digital de Explotación (RD 1311/2012 y Orden APA/204/2023).
+        Puedes guardar sin los datos CDE y completarlos después.
       </Text>
 
-      <TextField
-        label="Producto comercial *"
-        value={value.productoComercial}
-        onChangeText={(t) => patch('productoComercial', t)}
-        editable={!disabled}
-        placeholder="Ej. Karate Zeon 10 CS"
-      />
-      <TextField
-        label="Nº registro (ROPO/MAPA) *"
-        value={value.numeroRegistro}
-        onChangeText={(t) => patch('numeroRegistro', t)}
-        editable={!disabled}
-        autoCapitalize="characters"
-        placeholder="Ej. 23339"
-      />
-      <TextField
-        label="Materia activa — opcional"
-        value={value.materiaActiva}
-        onChangeText={(t) => patch('materiaActiva', t)}
-        editable={!disabled}
-        placeholder="Ej. lambda cihalotrín 10%"
-      />
+      {field('productoComercial', 'Producto comercial *', {
+        placeholder: 'Nombre que figura en la etiqueta',
+      })}
+      {field('numeroRegistro', 'Nº de registro del producto *', {
+        autoCapitalize: 'characters',
+        placeholder: 'Registro de Productos Fitosanitarios',
+      })}
+      {field('materiaActiva', 'Materia activa — CDE', {
+        placeholder: 'Según la etiqueta',
+      })}
 
       <View style={styles.row}>
         <View style={styles.dosisField}>
-          <TextField
-            label="Dosis *"
-            value={value.dosis}
-            onChangeText={(t) => patch('dosis', t)}
-            editable={!disabled}
-            keyboardType="decimal-pad"
-            placeholder="Ej. 0,5"
-          />
+          {field('dosis', 'Dosis *', { keyboardType: 'decimal-pad' })}
         </View>
         <View style={styles.dosisUnitField}>
-          <Text style={styles.unitLabel}>Unidad</Text>
-          <View style={styles.chipsRow}>
-            {FITOSANITARIO_DOSIS_UNITS.map((u) => {
-              const selected = u === value.dosisUnidad;
-              return (
-                <Text
-                  key={u}
-                  onPress={() => !disabled && patch('dosisUnidad', u)}
-                  style={[
-                    styles.unitChip,
-                    selected && styles.unitChipSelected,
-                  ]}
-                >
-                  {u}
-                </Text>
-              );
-            })}
-          </View>
+          <Chips
+            label="Unidad de dosis *"
+            options={FITOSANITARIO_DOSIS_UNITS}
+            selected={value.dosisUnidad}
+            onSelect={(u) => patch('dosisUnidad', u)}
+            disabled={disabled}
+          />
         </View>
       </View>
 
-      <TextField
-        label="Plaga / enfermedad objetivo *"
-        value={value.plagaObjetivo}
-        onChangeText={(t) => patch('plagaObjetivo', t)}
-        editable={!disabled}
-        placeholder="Ej. mosca del olivo (Bactrocera oleae)"
-      />
-      <TextField
-        label="Plazo de seguridad (días) *"
-        value={value.plazoSeguridadDias}
-        onChangeText={(t) => patch('plazoSeguridadDias', t)}
-        editable={!disabled}
-        keyboardType="number-pad"
-        placeholder="Ej. 21"
-      />
-      <TextField
-        label="Volumen de caldo (L/ha) — opcional"
-        value={value.volumenCaldoLHa}
-        onChangeText={(t) => patch('volumenCaldoLHa', t)}
-        editable={!disabled}
-        keyboardType="decimal-pad"
-        placeholder="Ej. 1000"
-      />
-      <TextField
-        label="Operador / aplicador — opcional"
-        value={value.operadorNombre}
-        onChangeText={(t) => patch('operadorNombre', t)}
-        editable={!disabled}
-        placeholder="Nombre y apellidos"
-      />
-      <TextField
-        label="Carnet de aplicador — opcional"
-        value={value.operadorCarnet}
-        onChangeText={(t) => patch('operadorCarnet', t)}
-        editable={!disabled}
-        autoCapitalize="characters"
-        placeholder="Ej. JAE-12345"
-      />
+      {field('plagaObjetivo', 'Plaga / enfermedad a controlar *')}
+      {field('justificacion', 'Justificación de la actuación — CDE', {
+        ...multiline,
+        placeholder: 'Por qué se trata (observación, umbral, aviso…)',
+      })}
+      {field('plazoSeguridadDias', 'Plazo de seguridad (días) *', {
+        keyboardType: 'number-pad',
+      })}
+      {field('volumenCaldoLHa', 'Volumen de caldo (L/ha) — opcional', {
+        keyboardType: 'decimal-pad',
+      })}
+
+      <Text style={styles.groupTitle}>Cultivo y superficie</Text>
+      {prefillNote ? <Text style={styles.prefill}>{prefillNote}</Text> : null}
+      {field('cultivoEspecie', 'Cultivo (especie) — CDE')}
+      {field('cultivoVariedad', 'Variedad — CDE')}
+      {field('superficieTratadaHa', 'Superficie tratada (ha) — CDE', {
+        keyboardType: 'decimal-pad',
+      })}
+      {areaText && value.superficieTratadaHa.trim() === '' && !disabled ? (
+        <Text
+          style={styles.linkAction}
+          onPress={() => patch('superficieTratadaHa', areaText)}
+        >
+          Se trató la parcela entera: usar {areaText} ha
+        </Text>
+      ) : null}
+
+      <Text style={styles.groupTitle}>Cantidad de producto utilizada</Text>
+      <View style={styles.row}>
+        <View style={styles.dosisField}>
+          {field('cantidadProducto', 'Cantidad total — CDE', {
+            keyboardType: 'decimal-pad',
+          })}
+        </View>
+        <View style={styles.dosisUnitField}>
+          <Chips
+            label="Unidad — CDE"
+            options={CANTIDAD_UNIDADES}
+            selected={value.cantidadUnidad}
+            onSelect={(u) => patch('cantidadUnidad', u)}
+            disabled={disabled}
+          />
+        </View>
+      </View>
+
+      <Text style={styles.groupTitle}>Aplicador</Text>
+      {field('operadorNombre', 'Nombre y apellidos o razón social — CDE')}
+      {field('operadorNif', 'NIF — CDE', { autoCapitalize: 'characters' })}
+      {field('operadorRopo', 'Nº de inscripción ROPO — CDE', {
+        autoCapitalize: 'characters',
+      })}
+      {field('operadorCarnet', 'Nº carné de aplicador — opcional', {
+        autoCapitalize: 'characters',
+      })}
+
+      <Text style={styles.groupTitle}>Equipo de aplicación</Text>
+      {field('equipoDescripcion', 'Equipo (tipo, marca, modelo) — CDE')}
+      {field('equipoRoma', 'Nº inscripción ROMA — si lo tiene', {
+        autoCapitalize: 'characters',
+      })}
+
+      <Text style={styles.groupTitle}>Resultado</Text>
+      {field('eficacia', 'Valoración de la eficacia — CDE', {
+        ...multiline,
+        placeholder: 'Puedes rellenarlo días después del tratamiento',
+      })}
+
+      <Text style={styles.groupTitle}>Asesor (solo si interviene)</Text>
+      <Text style={styles.sectionHint}>
+        Si rellenas un dato del asesor, el CDE exige los cuatro.
+      </Text>
+      {field('asesorNombre', 'Nombre y apellidos o razón social')}
+      {field('asesorNif', 'NIF', { autoCapitalize: 'characters' })}
+      {field('asesorRopo', 'Código ROPO', { autoCapitalize: 'characters' })}
+      {field('asesorFechaValidacion', 'Fecha de validación (YYYY-MM-DD)', {
+        autoCapitalize: 'none',
+        keyboardType: 'numbers-and-punctuation',
+      })}
     </View>
   );
 }
@@ -268,11 +442,40 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
+  groupTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   sectionHint: {
     color: theme.colors.textMuted,
     fontSize: 12,
     marginBottom: theme.spacing.md,
     lineHeight: 16,
+  },
+  prefill: {
+    color: theme.colors.text,
+    backgroundColor: '#FFF3CD',
+    borderRadius: theme.radius.sm,
+    padding: theme.spacing.sm,
+    fontSize: 12,
+    marginBottom: theme.spacing.md,
+  },
+  linkAction: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: 13,
+    marginTop: -theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  multiline: {
+    height: 80,
+    paddingTop: theme.spacing.sm,
+    textAlignVertical: 'top',
   },
   row: {
     flexDirection: 'row',

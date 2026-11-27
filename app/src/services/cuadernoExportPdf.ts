@@ -268,7 +268,7 @@ function buildHtml(
       <th>Ref. SIGPAC</th>
       <th>Superficie<br>tratada</th>
       <th>Nombre comercial<br>del producto</th>
-      <th>Nº registro<br>ROPO/MAPA</th>
+      <th>Nº registro<br>del producto</th>
       <th>Materia activa</th>
       <th>Dosis aplicada</th>
       <th>Vol. caldo<br>(L/ha)</th>

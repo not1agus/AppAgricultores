@@ -120,8 +120,14 @@ export const sigpacService = {
   async fetchByReference(reference: SigpacReference): Promise<SigpacParcelResult> {
     const url = buildUrl(reference);
     const data = await fetchJson(url);
+    // Store the agregado/zona that SIGPAC actually confirmed (the query above
+    // uses '0' when absent), so the saved reference is complete for the CDE.
     return {
-      reference,
+      reference: {
+        ...reference,
+        agregado: reference.agregado ?? '0',
+        zona: reference.zona ?? '0',
+      },
       areaHa: extractAreaHa(data),
       geometry: extractGeometry(data),
     };

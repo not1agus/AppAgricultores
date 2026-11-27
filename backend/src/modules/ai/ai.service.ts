@@ -8,7 +8,10 @@ import { getSupabaseServiceClient } from '../../config';
 import { env } from '../../config/env';
 import { ForbiddenError } from '../../common/errors';
 import { logger } from '../../common/utils/logger';
-import type { ChatMessage, ChatResponse } from './ai.types';
+import { buildCdeRows } from '../cde/cde.builder';
+import { loadCdeSource } from '../cde/cde.service';
+import type { CdePreviewInput } from '../cde/cde.types';
+import type { ChatMessage, ChatResponse, CdeReviewResponse } from './ai.types';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -23,38 +26,35 @@ const SYSTEM_INSTRUCTION = `Eres un asistente especializado en agricultura medit
 ## Normativa clave que debes conocer
 
 ### RD 1311/2012 — Uso sostenible de productos fitosanitarios
-- Obliga a registrar todos los tratamientos fitosanitarios.
-- Campos obligatorios: nombre del producto, nº de registro ROPO/MAPA, materia activa, dosis, unidad de dosis, plaga/enfermedad objetivo, plazo de seguridad en días, fecha de aplicación, parcela tratada, nombre y carnet del aplicador.
-- El carnet de aplicador ROPO (Registro Oficial de Productores y Operadores) es obligatorio para aplicar fitosanitarios.
+- Obliga a registrar todos los tratamientos fitosanitarios (art. 16 y anexo III, parte I.B).
+- Datos de cada tratamiento (RD 1311/2012 anexo III parte I.B y Orden APA/204/2023 anexo II): fecha de tratamiento; identificación de la parcela (SIGPAC: provincia, municipio, agregado, zona, polígono, parcela, recinto); cultivo indicando especie y variedad; superficie tratada en hectáreas; problemática fitosanitaria (plaga a controlar) y justificación de la actuación; producto (nombre comercial, número de registro, materia activa); cantidad de producto utilizada (kg o L); aplicador (nombre y apellidos o razón social, NIF y nº de inscripción ROPO); equipo de aplicación (y nº ROMA cuando proceda); asesor, en su caso (nombre, NIF, código ROPO y fecha de validación); valoración de la eficacia; observaciones.
+- El número de registro del producto (Registro de Productos Fitosanitarios del MAPA) no es lo mismo que el ROPO (registro de productores y operadores, donde se inscriben aplicadores y asesores).
 - Los registros deben conservarse mínimo 3 años.
 
-### RD 1054/2022 — SIEX / Cuaderno Único de Explotación (CUE)
-- Desde el 1 de enero de 2027 (Andalucía), todos los agricultores deben llevar el Cuaderno Único de Explotación digital.
-- El CUE unifica el antiguo cuaderno fitosanitario con el cuaderno de campo general.
-- Se gestiona a través de la plataforma digital de la Junta de Andalucía / MAPA.
-- Campos adicionales del CUE: referencia SIGPAC de cada parcela, superficie tratada (ha), campaña agrícola.
-- Las anotaciones deben realizarse dentro de los 3 días hábiles siguientes a la actividad.
+### Cuaderno Digital de Explotación Agrícola (RD 1054/2022, Orden APA/204/2023)
+- Según el art. 16.1 del RD 1311/2012, el registro en papel solo se admite hasta el 31 de diciembre de 2026.
+- Según el art. 16.5 del RD 1311/2012, los datos de los tratamientos deben proporcionarse al menos con carácter mensual.
+- No afirmes otros plazos en días: si te preguntan, di que la norma consultada habla de "al menos con carácter mensual" y que conviene confirmarlo con la comunidad autónoma o un técnico.
 
 ### Plazo de seguridad
 - Es el tiempo mínimo en días que debe pasar entre el último tratamiento y la cosecha.
 - Si el plazo no ha terminado, NO se puede cosechar esa parcela.
 - Ejemplo: tratamiento el 1 de octubre con plazo 21 días → no cosechar antes del 22 de octubre.
 
-### Número de registro ROPO/MAPA
-- Formato habitual: número de 5 dígitos (ej. 23339).
-- Consulta el Registro de Productos Fitosanitarios del MAPA para verificar si un número es válido.
+### Número de registro del producto
+- Figura en la etiqueta del producto; para verificarlo hay que consultar el Registro de Productos Fitosanitarios del MAPA.
 
 ## Lo que puedes hacer
 1. Responder preguntas sobre normativa fitosanitaria y el CUE.
 2. Revisar tratamientos registrados y detectar campos vacíos u inconsistencias.
 3. Calcular fechas: fin del plazo de seguridad, próxima anotación permitida, etc.
 4. Sugerir qué información falta en un registro para cumplir el RD 1311/2012.
-5. Explicar qué hacer si se supera el plazo de anotación (3 días hábiles).
+5. Recordar que los tratamientos deben volcarse al cuaderno digital al menos con carácter mensual.
 6. Ayudar a interpretar datos de la explotación: producciones, gastos, etc.
 
 ## Lo que NO puedes hacer
 - Dar consejo agronómico personalizado sin conocer el estado real del cultivo.
-- Garantizar la validez de un número de registro ROPO sin consultar el MAPA.
+- Garantizar la validez de un número de registro de producto o de ROPO sin consultar el registro oficial.
 - Reemplazar a un técnico agrícola cualificado.
 
 ## Formato de respuesta
@@ -106,10 +106,20 @@ function addDays(iso: string, days: number): string {
   });
 }
 
-function sigpacStr(ref: { provincia: number; municipio: number; poligono: number; parcela: number; recinto?: number | null } | null): string {
+type SigpacLike = {
+  provincia: string | number;
+  municipio: string | number;
+  agregado?: string | number | null;
+  zona?: string | number | null;
+  poligono: string | number;
+  parcela: string | number;
+  recinto?: string | number | null;
+};
+
+function sigpacStr(ref: SigpacLike | null): string {
   if (!ref) return '(sin SIGPAC)';
-  const tail = ref.recinto ? `:${ref.recinto}` : '';
-  return `${ref.provincia}:${ref.municipio}:${ref.poligono}:${ref.parcela}${tail}`;
+  const part = (v: string | number | null | undefined) => (v == null || v === '' ? '?' : String(v));
+  return [ref.provincia, ref.municipio, part(ref.agregado), part(ref.zona), ref.poligono, ref.parcela, part(ref.recinto)].join(':');
 }
 
 async function buildFarmContext(userId: string, fincaId: string): Promise<FarmContext> {
@@ -226,6 +236,10 @@ function contextToText(ctx: FarmContext): string {
 
 // ─── Gemini client ────────────────────────────────────────────────────────────
 
+// gemini-2.0-flash was retired by Google (404); keep a single model id here.
+const GEMINI_MODEL = 'gemini-3.8-flash';
+const GEMINI_REQUEST = { timeout: 45_000 };
+
 function getClient(): GoogleGenerativeAI {
   if (!env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY no configurada');
@@ -253,14 +267,14 @@ export async function chat(
 
   const client = getClient();
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: GEMINI_MODEL,
     systemInstruction: SYSTEM_INSTRUCTION + '\n\n' + contextBlock,
     safetySettings: SAFETY,
     generationConfig: {
       maxOutputTokens: 1024,
       temperature: 0.4,
     },
-  });
+  }, GEMINI_REQUEST);
 
   const geminiHistory: Content[] = history.map((m) => ({
     role: m.role,
@@ -281,4 +295,90 @@ export async function chat(
   }
 
   return { reply };
+}
+
+// ─── Revisión de la exportación CDE ──────────────────────────────────────────
+
+const CDE_REVIEW_INSTRUCTION = `Eres un revisor del registro de tratamientos fitosanitarios que un agricultor va a volcar al Cuaderno Digital de Explotación Agrícola (RD 1311/2012 anexo III parte I.B; Orden APA/204/2023 anexo II).
+
+Reglas estrictas:
+- Solo revisas. NUNCA propones valores concretos para rellenar datos que falten ni das por buenos datos inventados.
+- Los campos vacíos obligatorios ya los detecta la app y te los pasan en "Problemas ya detectados": no los repitas.
+- Busca incoherencias en los datos que sí hay: cantidad de producto que no cuadra con dosis × superficie tratada; superficie tratada vs. superficie de la parcela; plaga que no encaja con el producto o la materia activa; justificación genérica o vacía de contenido; valoración de eficacia ambigua; observaciones contradictorias; fechas raras (asesor validando después del tratamiento, tratamientos repetidos el mismo día en la misma parcela con el mismo producto).
+- No puedes verificar números de registro ni ROPO: si hace falta, recomienda comprobarlos en el registro oficial.
+- No afirmes plazos legales en días.
+
+Formato: español, conciso. Una lista por tratamiento con problemas (identifícalo por fecha y referencia SIGPAC) usando ⚠️ para dudas y ❌ para errores claros. Si no ves nada raro en un tratamiento, no lo menciones. Termina con una línea "✅ Sin incoherencias detectadas" si no hay ninguna.`;
+
+/**
+ * Pide a Gemini una revisión de coherencia de los tratamientos a exportar.
+ * Por privacidad no se envían NIF ni nombres de personas: el modelo solo
+ * recibe datos agronómicos y si los datos de aplicador/asesor están presentes.
+ */
+export async function reviewCde(
+  userId: string,
+  input: CdePreviewInput,
+): Promise<CdeReviewResponse> {
+  const src = await loadCdeSource(userId, input);
+  const { problems } = buildCdeRows(
+    src.actividades,
+    src.parcelas,
+    new Date().toISOString().slice(0, 10),
+  );
+  const parcelasById = new Map(src.parcelas.map((p) => [p.id, p]));
+
+  const tratamientos = src.actividades.map((a) => {
+    const p = parcelasById.get(a.parcelaId);
+    const f = a.fitosanitario;
+    return {
+      fecha: a.performedAt,
+      sigpac: sigpacStr(p?.sigpacRef ?? null),
+      superficieParcelaHa: p?.areaHa ?? null,
+      cultivo: f?.cultivoEspecie ?? null,
+      variedad: f?.cultivoVariedad ?? null,
+      superficieTratadaHa: f?.superficieTratadaHa ?? null,
+      plaga: f?.plagaObjetivo ?? null,
+      justificacion: f?.justificacion ?? null,
+      producto: f?.productoComercial ?? null,
+      numeroRegistro: f?.numeroRegistro ?? null,
+      materiaActiva: f?.materiaActiva ?? null,
+      dosis: f ? `${f.dosis} ${f.dosisUnidad}` : null,
+      volumenCaldoLHa: f?.volumenCaldoLHa ?? null,
+      cantidad: f?.cantidadProducto != null ? `${f.cantidadProducto} ${f.cantidadUnidad ?? ''}`.trim() : null,
+      equipo: f?.equipoDescripcion ?? null,
+      aplicadorIdentificado: Boolean(f?.operadorNombre && f?.operadorNif && f?.operadorRopo),
+      asesorFechaValidacion: f?.asesorFechaValidacion ?? null,
+      eficacia: f?.eficacia ?? null,
+      observaciones: a.description,
+    };
+  });
+
+  const yaDetectados = problems.map(
+    (pr) => `- ${pr.fecha} (${pr.parcelaName}): ${pr.messages.join('; ')}`,
+  );
+
+  const prompt = [
+    `Tratamientos a revisar (${tratamientos.length}):`,
+    JSON.stringify(tratamientos, null, 1),
+    '',
+    'Problemas ya detectados por la app:',
+    yaDetectados.length > 0 ? yaDetectados.join('\n') : '(ninguno)',
+  ].join('\n');
+
+  const model = getClient().getGenerativeModel({
+    model: GEMINI_MODEL,
+    systemInstruction: CDE_REVIEW_INSTRUCTION,
+    safetySettings: SAFETY,
+    generationConfig: { maxOutputTokens: 1500, temperature: 0.2 },
+  }, GEMINI_REQUEST);
+
+  try {
+    const result = await model.generateContent(prompt);
+    return { review: result.response.text() };
+  } catch (err) {
+    logger.warn('ai: Gemini CDE review failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 }

@@ -1,13 +1,15 @@
 import {
   Content,
+  EnhancedGenerateContentResponse,
+  FinishReason,
   GoogleGenerativeAI,
   HarmBlockThreshold,
   HarmCategory,
 } from '@google/generative-ai';
 import { getSupabaseServiceClient } from '../../config';
 import { env } from '../../config/env';
-import { ForbiddenError } from '../../common/errors';
 import { logger } from '../../common/utils/logger';
+import { fincasService } from '../fincas/fincas.service';
 import { buildCdeRows } from '../cde/cde.builder';
 import { loadCdeSource } from '../cde/cde.service';
 import type { CdePreviewInput } from '../cde/cde.types';
@@ -125,16 +127,8 @@ function sigpacStr(ref: SigpacLike | null): string {
 async function buildFarmContext(userId: string, fincaId: string): Promise<FarmContext> {
   const sb = getSupabaseServiceClient();
 
-  // Verify user has access to the finca
-  const { data: member } = await sb
-    .from('finca_members')
-    .select('role')
-    .eq('finca_id', fincaId)
-    .eq('user_id', userId)
-    .single();
-  if (!member) {
-    throw new ForbiddenError('Acceso denegado a esta finca', 'FINCA_FORBIDDEN');
-  }
+  // Same membership check as the rest of the API (throws if not a member).
+  await fincasService.assertMember(fincaId, userId);
 
   const [fincaRes, parcelasRes, campanasRes] = await Promise.all([
     sb.from('fincas').select('name').eq('id', fincaId).single(),
@@ -236,9 +230,23 @@ function contextToText(ctx: FarmContext): string {
 
 // ─── Gemini client ────────────────────────────────────────────────────────────
 
-// gemini-2.0-flash was retired by Google (404); keep a single model id here.
-const GEMINI_MODEL = 'gemini-3.8-flash';
+// gemini-2.0/2.5-flash were retired by Google (404). gemini-3.8-flash and the
+// *-latest aliases were timing out under load (Nov 2026); 3.5-flash answers
+// reliably with this key. Keep a single model id here.
+const GEMINI_MODEL = 'gemini-3.5-flash';
 const GEMINI_REQUEST = { timeout: 45_000 };
+// Gemini 3.x "thinks" before answering and those thought tokens count against
+// maxOutputTokens (~1.4k on a CDE review), so the budget must leave room for
+// the visible answer too.
+const GEMINI_MAX_OUTPUT_TOKENS = 8192;
+
+/** Texto de la respuesta; si Gemini la cortó por límite, error en vez de media respuesta. */
+function completeText(response: EnhancedGenerateContentResponse): string {
+  if (response.candidates?.[0]?.finishReason === FinishReason.MAX_TOKENS) {
+    throw new Error('La respuesta de la IA ha salido incompleta. Reintenta en unos minutos.');
+  }
+  return response.text();
+}
 
 function getClient(): GoogleGenerativeAI {
   if (!env.GEMINI_API_KEY) {
@@ -271,7 +279,7 @@ export async function chat(
     systemInstruction: SYSTEM_INSTRUCTION + '\n\n' + contextBlock,
     safetySettings: SAFETY,
     generationConfig: {
-      maxOutputTokens: 1024,
+      maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
       temperature: 0.4,
     },
   }, GEMINI_REQUEST);
@@ -286,7 +294,7 @@ export async function chat(
   let reply: string;
   try {
     const result = await chatSession.sendMessage(message);
-    reply = result.response.text();
+    reply = completeText(result.response);
   } catch (err) {
     logger.warn('ai: Gemini call failed', {
       error: err instanceof Error ? err.message : String(err),
@@ -308,7 +316,7 @@ Reglas estrictas:
 - No puedes verificar números de registro ni ROPO: si hace falta, recomienda comprobarlos en el registro oficial.
 - No afirmes plazos legales en días.
 
-Formato: español, conciso. Una lista por tratamiento con problemas (identifícalo por fecha y referencia SIGPAC) usando ⚠️ para dudas y ❌ para errores claros. Si no ves nada raro en un tratamiento, no lo menciones. Termina con una línea "✅ Sin incoherencias detectadas" si no hay ninguna.`;
+Formato: español, conciso, texto plano (la app no interpreta markdown: nada de **, # ni *; usa "- " para las listas). Una lista por tratamiento con problemas (identifícalo por fecha y referencia SIGPAC) usando ⚠️ para dudas y ❌ para errores claros. Si no ves nada raro en un tratamiento, no lo menciones. Termina con una línea "✅ Sin incoherencias detectadas" si no hay ninguna.`;
 
 /**
  * Pide a Gemini una revisión de coherencia de los tratamientos a exportar.
@@ -369,12 +377,12 @@ export async function reviewCde(
     model: GEMINI_MODEL,
     systemInstruction: CDE_REVIEW_INSTRUCTION,
     safetySettings: SAFETY,
-    generationConfig: { maxOutputTokens: 1500, temperature: 0.2 },
+    generationConfig: { maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS, temperature: 0.2 },
   }, GEMINI_REQUEST);
 
   try {
     const result = await model.generateContent(prompt);
-    return { review: result.response.text() };
+    return { review: completeText(result.response) };
   } catch (err) {
     logger.warn('ai: Gemini CDE review failed', {
       error: err instanceof Error ? err.message : String(err),

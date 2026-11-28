@@ -1,7 +1,9 @@
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,8 +11,6 @@ import {
   View,
 } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { OfflineBadge } from '@/components/OfflineBadge';
 import { Screen } from '@/components/Screen';
 import type { MainStackParamList } from '@/navigation/types';
@@ -292,6 +292,8 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
     );
   }
 
+  const attentionCount = pendingTickets.length + staleParcelas.length;
+
   return (
     <Screen>
       <ScrollView
@@ -311,11 +313,15 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
               </Text>
             ) : null}
           </View>
-          <Button
-            title="Ajustes"
-            variant="ghost"
+          <Pressable
             onPress={() => navigation.navigate('Settings')}
-          />
+            accessibilityRole="button"
+            accessibilityLabel="Ajustes"
+            hitSlop={8}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          >
+            <Icon name="cog-outline" size={22} color={theme.colors.text} />
+          </Pressable>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -324,105 +330,101 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
 
         {/* Weather alerts — only shown when there are active AEMET alerts */}
         {weatherLoading ? null : weatherAlerts.length > 0 ? (
-          <View style={styles.weatherSection}>
-            <Text style={styles.weatherTitle}>Alertas meteorológicas</Text>
+          <View style={styles.section}>
+            <SectionTitle icon="weather-lightning-rainy" title="Alertas meteorológicas" />
             {weatherAlerts.map((alert) => (
               <WeatherAlertRow key={alert.id} alert={alert} />
             ))}
           </View>
         ) : null}
 
-        {/* KPI summary card — only when there is at least one finca */}
         {fincas.length > 0 ? (
-          <Card style={styles.kpiCard}>
-            <View style={styles.kpiRow}>
-              <KpiCell label="Fincas" value={String(aggregate.totalFincas)} />
-              <KpiCell
+          <>
+            {/* Hero: balance del año */}
+            <View style={styles.hero}>
+              <View style={styles.heroTop}>
+                <View style={styles.heroIcon}>
+                  <Icon name="cash-multiple" size={20} color={theme.colors.primaryText} />
+                </View>
+                <Text style={styles.heroLabel}>Balance del año</Text>
+              </View>
+              {financeAllReported ? (
+                <Text
+                  style={styles.heroValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                >
+                  {fmtEur(aggregateYtdBalance)}
+                </Text>
+              ) : (
+                <ActivityIndicator
+                  color={theme.colors.primaryText}
+                  style={styles.heroSpinner}
+                />
+              )}
+              <Text style={styles.heroHint}>
+                {aggregateYtdBalance < 0 && financeAllReported
+                  ? 'Gastos por encima de ingresos'
+                  : 'Ingresos menos gastos, todas las fincas'}
+              </Text>
+            </View>
+
+            {/* KPI grid */}
+            <View style={styles.grid}>
+              <StatTile icon="home-group" label="Fincas" value={aggregate.totalFincas} />
+              <StatTile
+                icon="map-marker-radius"
                 label="Parcelas"
-                value={String(aggregate.totalParcelas)}
+                value={aggregate.totalParcelas}
+                loading={statsLoading}
               />
-            </View>
-            <View style={styles.kpiRow}>
-              <KpiCell
-                label="Actividades 30d"
-                value={String(aggregate.totalRecentActividades)}
+              <StatTile
+                icon="sprout"
+                label="Actividades 30 días"
+                value={aggregate.totalRecentActividades}
+                loading={statsLoading}
               />
-              <KpiCell
+              <StatTile
+                icon="receipt-text-outline"
                 label="Tickets pendientes"
-                value={String(aggregate.totalPendingTickets)}
-                highlight={aggregate.totalPendingTickets > 0}
+                value={aggregate.totalPendingTickets}
+                loading={statsLoading}
+                alert={aggregate.totalPendingTickets > 0}
               />
-            </View>
-            <View style={styles.kpiRow}>
-              <View style={styles.kpiCell}>
-                <Text style={styles.kpiLabel}>Parcelas descuidadas</Text>
-                {statsLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.textMuted}
-                    style={styles.kpiSpinner}
-                  />
-                ) : (
-                  <Text
-                    style={[
-                      styles.kpiValue,
-                      aggregate.totalStaleParcelas > 0
-                        ? { color: theme.colors.danger }
-                        : null,
-                    ]}
-                  >
-                    {String(aggregate.totalStaleParcelas)}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.kpiCell}>
-                <Text style={styles.kpiLabel}>Balance año en curso</Text>
-                {financeAllReported ? (
-                  <Text
-                    style={[
-                      styles.kpiValue,
-                      {
-                        color:
-                          aggregateYtdBalance >= 0
-                            ? theme.colors.primary
-                            : theme.colors.danger,
-                      },
-                    ]}
-                  >
-                    {fmtEur(aggregateYtdBalance)}
-                  </Text>
-                ) : (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.textMuted}
-                    style={styles.kpiSpinner}
-                  />
-                )}
-              </View>
             </View>
             {!statsLoading &&
             aggregate.totalRecentActividades > 0 &&
             aggregate.totalRecentActividadesSinFoto > 0 ? (
-              <Text style={styles.kpiNote}>
+              <Text style={styles.note}>
                 {aggregate.totalRecentActividadesSinFoto} de{' '}
                 {aggregate.totalRecentActividades} actividades sin foto
               </Text>
             ) : null}
-            {statsLoading || financeLoading ? (
-              <Text style={styles.kpiNote}>Calculando…</Text>
-            ) : null}
-          </Card>
+          </>
         ) : null}
 
-        {/* Pending tickets — alert colour so they are noticed first */}
-        {pendingTickets.length > 0 ? (
-          <View style={styles.alertSection}>
-            <Text style={styles.alertTitle}>
-              Tickets pendientes ·{' '}
-              {aggregate.totalPendingTickets > PENDING_LIMIT
-                ? `${PENDING_LIMIT} de ${aggregate.totalPendingTickets}`
-                : aggregate.totalPendingTickets}
-            </Text>
+        {/* Quick actions */}
+        <View style={styles.quickRow}>
+          <QuickAction
+            icon="barn"
+            label={fincas.length === 0 ? 'Crear primera finca' : 'Mis fincas'}
+            primary
+            onPress={() => navigation.navigate('FincasList')}
+          />
+          {fincas.length > 0 ? (
+            <QuickAction
+              icon="plus"
+              label="Nueva finca"
+              onPress={() => navigation.navigate('CreateFinca')}
+            />
+          ) : null}
+        </View>
+
+        {/* Needs attention: pending tickets + stale parcelas */}
+        {attentionCount > 0 ? (
+          <View style={styles.section}>
+            <SectionTitle icon="alert-circle-outline" title="Necesitan atención" tone="danger" />
             {pendingTickets.map((t) => (
               <TicketRow
                 key={t.id}
@@ -436,18 +438,11 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
                 }
               />
             ))}
-          </View>
-        ) : null}
-
-        {/* Stale parcelas */}
-        {staleParcelas.length > 0 ? (
-          <View style={styles.alertSection}>
-            <Text style={styles.alertTitle}>
-              Parcelas descuidadas ·{' '}
-              {aggregate.totalStaleParcelas > STALE_LIMIT
-                ? `${STALE_LIMIT} de ${aggregate.totalStaleParcelas}`
-                : aggregate.totalStaleParcelas}
-            </Text>
+            {aggregate.totalPendingTickets > PENDING_LIMIT ? (
+              <Text style={styles.note}>
+                Mostrando {PENDING_LIMIT} de {aggregate.totalPendingTickets} tickets pendientes
+              </Text>
+            ) : null}
             {staleParcelas.map((p) => (
               <StaleRow
                 key={p.id}
@@ -461,13 +456,18 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
                 }
               />
             ))}
+            {aggregate.totalStaleParcelas > STALE_LIMIT ? (
+              <Text style={styles.note}>
+                Mostrando {STALE_LIMIT} de {aggregate.totalStaleParcelas} parcelas sin actividad
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
-        {/* Recent activity feed — neutral, informational */}
+        {/* Recent activity feed */}
         {recentActividades.length > 0 ? (
-          <View style={styles.recentSection}>
-            <Text style={styles.recentTitle}>Actividad reciente</Text>
+          <View style={styles.section}>
+            <SectionTitle icon="history" title="Actividad reciente" />
             {recentActividades.map((a) => (
               <ActividadRow
                 key={a.id}
@@ -484,29 +484,20 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
           </View>
         ) : null}
 
-        {/* Primary actions */}
-        <View style={styles.actions}>
-          <Button
-            title={
-              fincas.length === 0 ? 'Crear primera finca' : 'Gestionar fincas'
-            }
-            onPress={() => navigation.navigate('FincasList')}
-          />
-          {fincas.length > 0 ? (
-            <Button
-              title="Nueva finca"
-              variant="ghost"
-              onPress={() => navigation.navigate('CreateFinca')}
-              style={styles.actionGhost}
-            />
-          ) : null}
-        </View>
+        {statsLoading || financeLoading ? (
+          <Text style={[styles.note, styles.noteCenter]}>Calculando…</Text>
+        ) : null}
 
         {/* Empty state guidance */}
         {fincas.length === 0 && !loading ? (
-          <Text style={styles.emptyHint}>
-            Añade tu primera finca para ver el resumen de tu olivar aquí.
-          </Text>
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Icon name="sprout-outline" size={32} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.emptyHint}>
+              Añade tu primera finca para ver el resumen de tu olivar aquí.
+            </Text>
+          </View>
         ) : null}
       </ScrollView>
     </Screen>
@@ -514,6 +505,134 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
 }
 
 // ---------- Sub-components ----------
+
+type IconName = ComponentProps<typeof Icon>['name'];
+
+const ACTIVIDAD_ICONS: Record<string, IconName> = {
+  tratamiento_fitosanitario: 'spray',
+  riego: 'water',
+  poda: 'content-cut',
+  cosecha: 'basket',
+  abonado: 'sack',
+  siembra: 'seed',
+  laboreo: 'tractor',
+};
+
+function SectionTitle({
+  icon,
+  title,
+  tone,
+}: {
+  icon: IconName;
+  title: string;
+  tone?: 'danger';
+}): JSX.Element {
+  const color = tone === 'danger' ? theme.colors.danger : theme.colors.textMuted;
+  return (
+    <View style={styles.sectionTitleRow}>
+      <Icon name={icon} size={16} color={color} />
+      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+    </View>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+  loading,
+  alert,
+}: {
+  icon: IconName;
+  label: string;
+  value: number;
+  loading?: boolean;
+  alert?: boolean;
+}): JSX.Element {
+  const tint = alert ? theme.colors.danger : theme.colors.primary;
+  return (
+    <View style={styles.tile}>
+      <View style={[styles.iconCircle, { backgroundColor: alert ? DANGER_SOFT : PRIMARY_SOFT }]}>
+        <Icon name={icon} size={20} color={tint} />
+      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={theme.colors.textMuted} style={styles.tileSpinner} />
+      ) : (
+        <Text style={[styles.tileValue, alert ? { color: theme.colors.danger } : null]}>
+          {String(value)}
+        </Text>
+      )}
+      <Text style={styles.tileLabel} numberOfLines={2}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  onPress,
+  primary,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+}): JSX.Element {
+  const fg = primary ? theme.colors.primaryText : theme.colors.primary;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.quick,
+        primary ? styles.quickPrimary : styles.quickSecondary,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon name={icon} size={20} color={fg} />
+      <Text style={[styles.quickLabel, { color: fg }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ListRow({
+  icon,
+  alert,
+  title,
+  meta,
+  onPress,
+}: {
+  icon: IconName;
+  alert?: boolean;
+  title: string;
+  meta: string;
+  onPress: () => void;
+}): JSX.Element {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: alert ? DANGER_SOFT : PRIMARY_SOFT }]}>
+        <Icon name={icon} size={20} color={alert ? theme.colors.danger : theme.colors.primary} />
+      </View>
+      <View style={styles.rowMain}>
+        <Text style={styles.rowPrimary} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.rowMeta} numberOfLines={1}>
+          {meta}
+        </Text>
+      </View>
+      <Icon name="chevron-right" size={22} color={theme.colors.textMuted} />
+    </Pressable>
+  );
+}
 
 function TicketRow({
   ticket,
@@ -528,20 +647,13 @@ function TicketRow({
   const almazara = fields?.almazara?.trim();
   const statusLabel = TICKET_STATUS_LABEL[ticket.status] ?? ticket.status;
   return (
-    <Card onPress={onPress} style={styles.rowCard}>
-      <View style={styles.row}>
-        <View style={styles.rowMain}>
-          <Text style={styles.rowPrimary} numberOfLines={1}>
-            {fincaName}
-            {almazara ? ` · ${almazara}` : ''}
-          </Text>
-          <Text style={styles.rowMeta}>
-            {statusLabel} · {ageLabel(ticket.createdAt)}
-          </Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </View>
-    </Card>
+    <ListRow
+      icon="receipt-text-clock-outline"
+      alert
+      title={`Ticket · ${fincaName}${almazara ? ` · ${almazara}` : ''}`}
+      meta={`${statusLabel} · ${ageLabel(ticket.createdAt)}`}
+      onPress={onPress}
+    />
   );
 }
 
@@ -556,20 +668,16 @@ function StaleRow({
 }): JSX.Element {
   const age =
     parcela.lastActividadAt !== null
-      ? ageLabel(parcela.lastActividadAt)
-      : `sin actividad ${PARCELA_STALE_DAYS}d+`;
+      ? `Última actividad ${ageLabel(parcela.lastActividadAt)}`
+      : `Sin actividad en ${PARCELA_STALE_DAYS}+ días`;
   return (
-    <Card onPress={onPress} style={styles.rowCard}>
-      <View style={styles.row}>
-        <View style={styles.rowMain}>
-          <Text style={styles.rowPrimary} numberOfLines={1}>
-            {fincaName} · {parcela.name}
-          </Text>
-          <Text style={styles.rowMeta}>{age}</Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </View>
-    </Card>
+    <ListRow
+      icon="sprout-outline"
+      alert
+      title={`${fincaName} · ${parcela.name}`}
+      meta={age}
+      onPress={onPress}
+    />
   );
 }
 
@@ -585,20 +693,12 @@ function ActividadRow({
   const cost =
     actividad.costEur !== null ? `${fmtEur(actividad.costEur)} · ` : '';
   return (
-    <Card onPress={onPress} style={styles.rowCard}>
-      <View style={styles.row}>
-        <View style={styles.rowMain}>
-          <Text style={styles.rowPrimary} numberOfLines={1}>
-            {ACTIVIDAD_TYPE_LABELS[actividad.type]} · {actividad.parcelaName}
-          </Text>
-          <Text style={styles.rowMeta} numberOfLines={1}>
-            {fincaName} · {cost}
-            {ageLabel(actividad.performedAt)}
-          </Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </View>
-    </Card>
+    <ListRow
+      icon={ACTIVIDAD_ICONS[actividad.type] ?? 'clipboard-text-outline'}
+      title={`${ACTIVIDAD_TYPE_LABELS[actividad.type]} · ${actividad.parcelaName}`}
+      meta={`${fincaName} · ${cost}${ageLabel(actividad.performedAt)}`}
+      onPress={onPress}
+    />
   );
 }
 
@@ -614,8 +714,9 @@ function WeatherAlertRow({ alert }: { alert: AemetAlert }): JSX.Element {
     ? alert.level.charAt(0).toUpperCase() + alert.level.slice(1)
     : 'Aviso';
   return (
-    <View style={[styles.weatherRow, { borderLeftColor: color }]}>
-      <View style={styles.weatherRowMain}>
+    <View style={styles.weatherRow}>
+      <Icon name={alert.level ? 'alert' : 'alert-circle-outline'} size={22} color={color} />
+      <View style={styles.rowMain}>
         <Text style={[styles.weatherLevel, { color }]}>{levelLabel}</Text>
         <Text style={styles.weatherText} numberOfLines={2}>
           {alert.phenomenon
@@ -627,45 +728,26 @@ function WeatherAlertRow({ alert }: { alert: AemetAlert }): JSX.Element {
   );
 }
 
-function KpiCell({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}): JSX.Element {
-  return (
-    <View style={styles.kpiCell}>
-      <Text style={styles.kpiLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.kpiValue,
-          highlight ? { color: theme.colors.danger } : null,
-        ]}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 // ---------- Styles ----------
+
+// Tonal tints for icon circles (DESIGN.md: depth through color, not lines).
+const PRIMARY_SOFT = 'rgba(62, 82, 25, 0.10)';
+const DANGER_SOFT = 'rgba(178, 59, 59, 0.10)';
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  noteCenter: { textAlign: 'center' },
   scroll: { paddingBottom: theme.spacing.xl },
+  pressed: { opacity: 0.75 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   headerText: { flex: 1 },
   greeting: {
     ...typography.display,
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
     color: theme.colors.text,
   },
   userName: {
@@ -674,132 +756,186 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.surfaceLow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   error: {
     color: theme.colors.danger,
     marginBottom: theme.spacing.md,
   },
-  kpiCard: {
+
+  hero: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
   },
-  kpiRow: {
-    flexDirection: 'row',
-  },
-  kpiCell: {
-    flex: 1,
-    paddingVertical: theme.spacing.xs,
-  },
-  kpiLabel: {
-    ...typography.label,
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  kpiValue: {
-    ...typography.display,
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  kpiSpinner: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-  },
-  kpiNote: {
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    marginTop: theme.spacing.xs,
-    fontStyle: 'italic',
-  },
-  alertSection: {
-    marginBottom: theme.spacing.md,
-  },
-  alertTitle: {
-    ...typography.label,
-    color: theme.colors.danger,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    marginBottom: theme.spacing.xs,
-  },
-  recentSection: {
-    marginBottom: theme.spacing.md,
-  },
-  recentTitle: {
-    ...typography.label,
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    marginBottom: theme.spacing.xs,
-  },
-  rowCard: {
-    marginBottom: theme.spacing.xs,
-    paddingVertical: theme.spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  heroIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  rowMain: { flex: 1 },
-  rowPrimary: {
-    color: theme.colors.text,
-    fontWeight: '600',
+  heroLabel: {
+    ...typography.label,
+    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 14,
   },
+  heroValue: {
+    ...typography.display,
+    color: theme.colors.primaryText,
+    fontSize: 40,
+    marginTop: theme.spacing.md,
+  },
+  heroSpinner: { alignSelf: 'flex-start', marginTop: theme.spacing.md, height: 48 },
+  heroHint: {
+    ...typography.body,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 12,
+    marginTop: theme.spacing.xs,
+  },
+
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  tile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileValue: {
+    ...typography.display,
+    fontSize: 28,
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+  },
+  tileSpinner: { alignSelf: 'flex-start', marginTop: theme.spacing.sm, height: 34 },
+  tileLabel: {
+    ...typography.label,
+    color: theme.colors.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  note: {
+    ...typography.body,
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    marginBottom: theme.spacing.sm,
+  },
+
+  quickRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  quick: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.pill,
+  },
+  quickPrimary: { backgroundColor: theme.colors.primary },
+  quickSecondary: { backgroundColor: PRIMARY_SOFT },
+  quickLabel: {
+    ...typography.headline,
+    fontSize: 15,
+  },
+
+  section: { marginBottom: theme.spacing.lg },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: theme.spacing.sm,
+  },
+  sectionTitle: {
+    ...typography.headline,
+    fontSize: 16,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  rowMain: { flex: 1, minWidth: 0 },
+  rowPrimary: {
+    ...typography.bodyMedium,
+    color: theme.colors.text,
+    fontSize: 15,
+  },
   rowMeta: {
+    ...typography.body,
     color: theme.colors.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
-  chevron: {
-    color: theme.colors.textMuted,
-    fontSize: 24,
-    marginLeft: theme.spacing.sm,
-  },
-  actions: {
-    marginTop: theme.spacing.sm,
-    gap: theme.spacing.xs,
-  },
-  actionGhost: {
-    marginTop: theme.spacing.xs,
-  },
-  emptyHint: {
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    marginTop: theme.spacing.lg,
-    fontSize: 14,
-  },
-  weatherSection: {
-    marginBottom: theme.spacing.md,
-  },
-  weatherTitle: {
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    marginBottom: theme.spacing.xs,
-  },
+
   weatherRow: {
-    borderLeftWidth: 3,
-    paddingLeft: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceLow,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
-  weatherRowMain: { flex: 1 },
   weatherLevel: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...typography.label,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   weatherText: {
+    ...typography.body,
     color: theme.colors.text,
     fontSize: 13,
     marginTop: 2,
+  },
+
+  empty: { alignItems: 'center', marginTop: theme.spacing.lg },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: theme.radius.pill,
+    backgroundColor: PRIMARY_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  emptyHint: {
+    ...typography.body,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    fontSize: 14,
   },
 });

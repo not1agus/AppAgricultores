@@ -10,6 +10,7 @@ import { getSupabaseServiceClient } from '../../config';
 import { env } from '../../config/env';
 import { logger } from '../../common/utils/logger';
 import { fincasService } from '../fincas/fincas.service';
+import { toPlainText } from './ai.format';
 import { buildCdeRows } from '../cde/cde.builder';
 import { loadCdeSource } from '../cde/cde.service';
 import type { CdePreviewInput } from '../cde/cde.types';
@@ -61,7 +62,8 @@ const SYSTEM_INSTRUCTION = `Eres un asistente especializado en agricultura medit
 
 ## Formato de respuesta
 - Responde de forma concisa y estructurada.
-- Usa listas cuando haya varios puntos.
+- Texto plano: la app NO interpreta markdown. Nada de **negritas**, # títulos, > citas ni separadores ---.
+- Usa listas con "- " o "1. " cuando haya varios puntos.
 - Si detectas un problema en un registro, indícalo claramente con ⚠️.
 - Si falta un campo obligatorio, indícalo con ❌.
 - Si todo está correcto, usa ✅.
@@ -245,7 +247,7 @@ function completeText(response: EnhancedGenerateContentResponse): string {
   if (response.candidates?.[0]?.finishReason === FinishReason.MAX_TOKENS) {
     throw new Error('La respuesta de la IA ha salido incompleta. Reintenta en unos minutos.');
   }
-  return response.text();
+  return toPlainText(response.text());
 }
 
 function getClient(): GoogleGenerativeAI {

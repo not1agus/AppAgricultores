@@ -1,8 +1,9 @@
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,10 +11,11 @@ import {
   View,
 } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
+import { IconCircle, IconName } from '@/components/IconCircle';
+import { ListRow } from '@/components/ListRow';
 import { ParcelaMap, ParcelaMapShape } from '@/components/ParcelaMap';
 import { Screen } from '@/components/Screen';
+import { SectionTitle } from '@/components/SectionTitle';
 import type { MainStackParamList } from '@/navigation/types';
 import { Finca, fincasService } from '@/services/fincas.service';
 import {
@@ -22,7 +24,7 @@ import {
   filterFinanceStatsYearToDate,
 } from '@/services/fincaFinanceStats.service';
 import { GeoJsonPolygon, Parcela, parcelasService } from '@/services/parcelas.service';
-import { WeatherForecast, weatherService } from '@/services/weather.service';
+import { DailyForecast, WeatherForecast, weatherService } from '@/services/weather.service';
 import {
   PlazoStatus,
   loadActivePlazosForFinca,
@@ -285,31 +287,37 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
   const isOwner = finca.role === 'owner';
 
   const sections: Array<{
+    icon: IconName;
     title: string;
     subtitle: string;
     onPress: () => void;
   }> = [
     {
+      icon: 'map-marker-radius',
       title: 'Parcelas',
       subtitle: 'Recintos SIGPAC asociados a la finca',
       onPress: () => navigation.navigate('ParcelasList', { fincaId }),
     },
     {
+      icon: 'calendar-range',
       title: 'Campañas',
       subtitle: 'Periodos de cosecha y rentabilidad',
       onPress: () => navigation.navigate('CampanasList', { fincaId }),
     },
     {
+      icon: 'notebook-edit-outline',
       title: 'Cuaderno de campo',
       subtitle: 'Tratamientos, riegos, podas y otras labores',
       onPress: () => navigation.navigate('ActividadesList', { fincaId }),
     },
     {
+      icon: 'receipt-text-outline',
       title: 'Tickets de almazara',
       subtitle: 'Escanea y revisa los tickets con OCR',
       onPress: () => navigation.navigate('TicketsList', { fincaId }),
     },
     {
+      icon: 'file-document-check-outline',
       title: 'Ficha de inspección',
       subtitle: 'Datos SIGPAC y fitosanitarios listos offline',
       onPress: () =>
@@ -319,6 +327,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
         }),
     },
     {
+      icon: 'creation',
       title: 'Asistente IA',
       subtitle: 'Consulta normativa CUE y datos de tu finca',
       onPress: () =>
@@ -330,6 +339,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
     ...(centroid
       ? [
           {
+            icon: 'weather-partly-cloudy' as IconName,
             title: 'Tiempo y alertas',
             subtitle: 'Previsión 7 días y alertas AEMET',
             onPress: () =>
@@ -343,6 +353,7 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
         ]
       : []),
     {
+      icon: 'account-group-outline',
       title: 'Miembros',
       subtitle: 'Invita trabajadores y gestiona permisos',
       onPress: () =>
@@ -350,56 +361,54 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
     },
   ];
 
-  const balanceColor =
-    (visibleFinance?.balance ?? 0) >= 0
-      ? theme.colors.primary
-      : theme.colors.danger;
-
   const previewCampanas = visibleFinance
     ? visibleFinance.campanas.slice(0, CAMPANAS_PREVIEW_LIMIT)
     : [];
 
   return (
     <Screen>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <Text style={styles.title}>{finca.name}</Text>
-          <Text style={styles.subtitle}>
-            Finca · {finca.role === 'owner' ? 'propietario' : 'trabajador'}
-          </Text>
+          <View style={styles.roleChip}>
+            <Icon
+              name={isOwner ? 'account-tie' : 'account-hard-hat'}
+              size={14}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.roleText}>{isOwner ? 'Propietario' : 'Trabajador'}</Text>
+          </View>
         </View>
 
         {parcelasConPlazo.length > 0 ? (
           <Pressable
-            onPress={() =>
-              navigation.navigate('ParcelasList', { fincaId })
-            }
-            style={({ pressed }) => [
-              styles.plazoBanner,
-              pressed ? styles.plazoBannerPressed : null,
-            ]}
+            onPress={() => navigation.navigate('ParcelasList', { fincaId })}
+            style={({ pressed }) => [styles.plazoBanner, pressed && styles.pressed]}
             accessibilityRole="button"
             accessibilityLabel={`${parcelasConPlazo.length} parcelas con plazo de seguridad activo`}
           >
-            <Text style={styles.plazoBannerTitle}>
-              ⚠ {parcelasConPlazo.length} parcela
-              {parcelasConPlazo.length === 1 ? '' : 's'} con plazo de seguridad
-              activo
-            </Text>
-            <Text style={styles.plazoBannerBody} numberOfLines={2}>
-              {parcelasConPlazo
-                .slice(0, 3)
-                .map((p) => p.name)
-                .join(' · ')}
-              {parcelasConPlazo.length > 3
-                ? ` · +${parcelasConPlazo.length - 3}`
-                : ''}
-            </Text>
+            <IconCircle name="timer-sand" tone="warning" />
+            <View style={styles.flex}>
+              <Text style={styles.plazoBannerTitle}>
+                {parcelasConPlazo.length} parcela
+                {parcelasConPlazo.length === 1 ? '' : 's'} con plazo de seguridad activo
+              </Text>
+              <Text style={styles.plazoBannerBody} numberOfLines={2}>
+                {parcelasConPlazo
+                  .slice(0, 3)
+                  .map((p) => p.name)
+                  .join(' · ')}
+                {parcelasConPlazo.length > 3 ? ` · +${parcelasConPlazo.length - 3}` : ''}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={22} color="#5A4200" />
           </Pressable>
         ) : null}
 
         {mapShapes ? (
-          <ParcelaMap shapes={mapShapes} height={200} />
+          <View style={styles.map}>
+            <ParcelaMap shapes={mapShapes} height={200} />
+          </View>
         ) : null}
 
         {forecastLoading ? (
@@ -407,8 +416,8 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
             <ActivityIndicator color={theme.colors.primary} size="small" />
           </View>
         ) : forecast && forecast.daily.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>Previsión 7 días</Text>
+          <View style={styles.section}>
+            <SectionTitle icon="weather-partly-cloudy" title="Previsión 7 días" />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -420,29 +429,37 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
                   <View key={day.date} style={styles.forecastCard}>
                     <Text style={styles.forecastDay}>{dayName}</Text>
                     <Text style={styles.forecastDate}>{date}</Text>
-                    {day.frostRisk ? (
-                      <Text style={styles.forecastFrost}>❄</Text>
-                    ) : null}
+                    <Icon
+                      name={forecastIcon(day)}
+                      size={26}
+                      color={day.frostRisk ? FROST_BLUE : theme.colors.primary}
+                      style={styles.forecastIcon}
+                    />
                     <Text style={styles.forecastTemp}>
                       {Math.round(day.tempMaxC)}° / {Math.round(day.tempMinC)}°
                     </Text>
-                    <Text style={styles.forecastPrecip}>
-                      {day.precipitationMm.toFixed(1)} mm
-                    </Text>
-                    <Text style={styles.forecastWind}>
-                      {Math.round(day.windSpeedMaxKmh)} km/h
-                    </Text>
-                    {day.et0Mm !== null ? (
-                      <Text style={styles.forecastEt0}>
-                        ET₀ {day.et0Mm.toFixed(1)}
+                    <View style={styles.forecastMetaRow}>
+                      <Icon name="water-outline" size={12} color={theme.colors.textMuted} />
+                      <Text style={styles.forecastMeta}>
+                        {day.precipitationMm.toFixed(1)} mm
                       </Text>
+                    </View>
+                    <View style={styles.forecastMetaRow}>
+                      <Icon name="weather-windy" size={12} color={theme.colors.textMuted} />
+                      <Text style={styles.forecastMeta}>
+                        {Math.round(day.windSpeedMaxKmh)} km/h
+                      </Text>
+                    </View>
+                    {day.et0Mm !== null ? (
+                      <Text style={styles.forecastEt0}>ET₀ {day.et0Mm.toFixed(1)}</Text>
                     ) : null}
                   </View>
                 );
               })}
             </ScrollView>
-            {centroid && finca ? (
-              <Pressable
+            {centroid ? (
+              <LinkRow
+                label="Ver alertas y previsión completa"
                 onPress={() =>
                   navigation.navigate('Weather', {
                     fincaId,
@@ -451,402 +468,511 @@ export function FincaDetailScreen({ route, navigation }: Props): JSX.Element {
                     lon: centroid.lon,
                   })
                 }
-                style={styles.weatherLink}
-              >
-                <Text style={styles.weatherLinkText}>
-                  Ver alertas y previsión completa →
-                </Text>
-              </Pressable>
+              />
             ) : null}
-          </>
+          </View>
         ) : null}
 
-        <Text style={styles.sectionLabel}>Resumen financiero</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.presetRow}
-        >
-          {FINANCE_PRESETS.map((p) => {
-            const selected = financePreset === p;
-            return (
-              <Text
-                key={p}
-                onPress={() => setFinancePreset(p)}
-                style={[styles.chip, selected && styles.chipSelected]}
-              >
-                {FINANCE_LABELS[p]}
-              </Text>
-            );
-          })}
-        </ScrollView>
-
-        {financeLoading ? (
-          <Card style={styles.card}>
-            <ActivityIndicator color={theme.colors.primary} />
-          </Card>
-        ) : financeError ? (
-          <Card style={styles.card}>
-            <Text style={styles.error}>{financeError}</Text>
-          </Card>
-        ) : visibleFinance && visibleFinance.campanas.length === 0 ? (
-          <Card style={styles.card}>
-            <Text style={styles.muted}>
-              {financePreset === 'year'
-                ? 'Sin campañas activas en el año en curso. Crea una campaña o cambia a "Todas las campañas".'
-                : 'Sin campañas registradas. Crea la primera para empezar a llevar la contabilidad.'}
-            </Text>
-          </Card>
-        ) : visibleFinance ? (
-          <>
-            <Card style={styles.card}>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryCol}>
-                  <Text style={styles.summaryLabel}>Ingresos</Text>
-                  <Text style={styles.summaryValue}>
-                    {fmtEur(visibleFinance.totalIngresos)}
-                  </Text>
-                </View>
-                <View style={styles.summaryCol}>
-                  <Text style={styles.summaryLabel}>Gastos</Text>
-                  <Text style={styles.summaryValue}>
-                    {fmtEur(visibleFinance.totalGastos)}
-                  </Text>
-                </View>
-                <View style={styles.summaryCol}>
-                  <Text style={styles.summaryLabel}>Balance</Text>
-                  <Text
-                    style={[styles.summaryValue, { color: balanceColor }]}
-                  >
-                    {fmtEur(visibleFinance.balance)}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.summaryNote}>
-                {visibleFinance.campanas.length}{' '}
-                campaña{visibleFinance.campanas.length === 1 ? '' : 's'} ·{' '}
-                {financePreset === 'year' ? 'año en curso' : 'histórico total'}
-              </Text>
-            </Card>
-
-            {previewCampanas.map((cs) => {
-              const cBalance = cs.summary.balance;
-              const cColor =
-                cBalance >= 0 ? theme.colors.primary : theme.colors.danger;
+        <View style={styles.section}>
+          <SectionTitle icon="cash-multiple" title="Resumen financiero" />
+          <View style={styles.segmented}>
+            {FINANCE_PRESETS.map((p) => {
+              const selected = financePreset === p;
               return (
-                <Card
-                  key={cs.campana.id}
-                  onPress={() =>
-                    navigation.navigate('CampanaDetail', {
-                      campanaId: cs.campana.id,
-                      campanaName: cs.campana.name,
-                    })
-                  }
-                  style={styles.campanaCard}
+                <Pressable
+                  key={p}
+                  onPress={() => setFinancePreset(p)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  style={[styles.segment, selected && styles.segmentSelected]}
                 >
-                  <View style={styles.campanaRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.campanaName}>{cs.campana.name}</Text>
-                      <Text style={styles.campanaMeta}>
-                        {cs.campana.startDate} →{' '}
-                        {cs.campana.endDate ?? 'en curso'} ·{' '}
-                        {cs.summary.count} mov.
-                      </Text>
-                    </View>
-                    <Text style={[styles.campanaBalance, { color: cColor }]}>
-                      {fmtEur(cBalance)}
-                    </Text>
-                  </View>
-                </Card>
+                  <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+                    {FINANCE_LABELS[p]}
+                  </Text>
+                </Pressable>
               );
             })}
+          </View>
 
-            {visibleFinance.campanas.length > CAMPANAS_PREVIEW_LIMIT ? (
-              <Text style={styles.moreHint}>
-                Mostrando {CAMPANAS_PREVIEW_LIMIT} de{' '}
-                {visibleFinance.campanas.length} campañas. Abre "Campañas" para
-                ver todas.
+          {financeLoading ? (
+            <View style={styles.panel}>
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          ) : financeError ? (
+            <View style={styles.panel}>
+              <Text style={styles.error}>{financeError}</Text>
+            </View>
+          ) : visibleFinance && visibleFinance.campanas.length === 0 ? (
+            <View style={[styles.panel, styles.emptyPanel]}>
+              <IconCircle name="calendar-blank-outline" />
+              <Text style={[styles.muted, styles.flex]}>
+                {financePreset === 'year'
+                  ? 'Sin campañas activas en el año en curso. Crea una campaña o cambia a "Todas las campañas".'
+                  : 'Sin campañas registradas. Crea la primera para empezar a llevar la contabilidad.'}
               </Text>
-            ) : null}
+            </View>
+          ) : visibleFinance ? (
+            <>
+              {/* DESIGN.md: hero gradient primary → primaryContainer at 135°. */}
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primaryContainer]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.hero}
+              >
+                <Text style={styles.heroLabel}>
+                  Balance · {financePreset === 'year' ? 'año en curso' : 'histórico total'}
+                </Text>
+                <Text
+                  style={styles.heroValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {fmtEur(visibleFinance.balance)}
+                </Text>
+                <View style={styles.heroSplit}>
+                  <HeroFigure
+                    icon="trending-up"
+                    label="Ingresos"
+                    value={fmtEur(visibleFinance.totalIngresos)}
+                  />
+                  <HeroFigure
+                    icon="trending-down"
+                    label="Gastos"
+                    value={fmtEur(visibleFinance.totalGastos)}
+                  />
+                </View>
+                <Text style={styles.heroHint}>
+                  {visibleFinance.campanas.length} campaña
+                  {visibleFinance.campanas.length === 1 ? '' : 's'}
+                </Text>
+              </LinearGradient>
 
-            <Pressable
-              onPress={() =>
-                navigation.navigate('Rentabilidad', {
-                  fincaId,
-                  fincaName: finca.name,
-                })
-              }
-              style={styles.rentabilidadLink}
-            >
-              <Text style={styles.rentabilidadLinkText}>
-                Ver análisis de rentabilidad →
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
+              {previewCampanas.map((cs) => {
+                const cBalance = cs.summary.balance;
+                return (
+                  <ListRow
+                    key={cs.campana.id}
+                    icon="calendar-range"
+                    title={cs.campana.name}
+                    meta={`${cs.campana.startDate} → ${cs.campana.endDate ?? 'en curso'} · ${cs.summary.count} mov.`}
+                    below={
+                      <Text
+                        style={[
+                          styles.campanaBalance,
+                          { color: cBalance >= 0 ? theme.colors.primary : theme.colors.danger },
+                        ]}
+                      >
+                        {fmtEur(cBalance)}
+                      </Text>
+                    }
+                    onPress={() =>
+                      navigation.navigate('CampanaDetail', {
+                        campanaId: cs.campana.id,
+                        campanaName: cs.campana.name,
+                      })
+                    }
+                  />
+                );
+              })}
 
-        <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>
-          Secciones
-        </Text>
-        {sections.map((s) => (
-          <Card key={s.title} onPress={s.onPress} style={styles.card}>
-            <Text style={styles.cardTitle}>{s.title}</Text>
-            <Text style={styles.cardSubtitle}>{s.subtitle}</Text>
-          </Card>
-        ))}
+              {visibleFinance.campanas.length > CAMPANAS_PREVIEW_LIMIT ? (
+                <Text style={styles.moreHint}>
+                  Mostrando {CAMPANAS_PREVIEW_LIMIT} de {visibleFinance.campanas.length}{' '}
+                  campañas. Abre "Campañas" para ver todas.
+                </Text>
+              ) : null}
+
+              <LinkRow
+                icon="chart-line"
+                label="Ver análisis de rentabilidad"
+                onPress={() =>
+                  navigation.navigate('Rentabilidad', {
+                    fincaId,
+                    fincaName: finca.name,
+                  })
+                }
+              />
+            </>
+          ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <SectionTitle icon="view-grid-outline" title="Secciones" />
+          <View style={styles.grid}>
+            {sections.map((s) => (
+              <Pressable
+                key={s.title}
+                onPress={s.onPress}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+              >
+                <IconCircle name={s.icon} />
+                <Text style={styles.tileTitle} numberOfLines={2}>
+                  {s.title}
+                </Text>
+                <Text style={styles.tileSubtitle} numberOfLines={3}>
+                  {s.subtitle}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         {isOwner ? (
-          <>
-            <Button
-              title="Editar finca"
-              variant="ghost"
-              onPress={() =>
-                navigation.navigate('EditFinca', { fincaId: finca.id })
-              }
+          <View style={styles.ownerActions}>
+            <Pressable
+              onPress={() => navigation.navigate('EditFinca', { fincaId: finca.id })}
               disabled={deleting}
-              style={styles.edit}
-            />
-            <Button
-              title="Eliminar finca"
-              variant="ghost"
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.ownerButton, styles.editButton, pressed && styles.pressed]}
+            >
+              <Icon name="pencil-outline" size={18} color={theme.colors.primary} />
+              <Text style={[styles.ownerButtonText, { color: theme.colors.primary }]}>
+                Editar finca
+              </Text>
+            </Pressable>
+            <Pressable
               onPress={confirmDelete}
-              loading={deleting}
-              style={styles.delete}
-            />
-          </>
+              disabled={deleting}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.ownerButton, styles.deleteButton, pressed && styles.pressed]}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={theme.colors.danger} />
+              ) : (
+                <Icon name="trash-can-outline" size={18} color={theme.colors.danger} />
+              )}
+              <Text style={[styles.ownerButtonText, { color: theme.colors.danger }]}>
+                Eliminar finca
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
       </ScrollView>
     </Screen>
   );
 }
 
+// ---------- Sub-components ----------
+
+const FROST_BLUE = '#4A90D9';
+
+/** Icono del día a partir de los datos reales: helada, lluvia o solo temperatura. */
+function forecastIcon(day: DailyForecast): IconName {
+  if (day.frostRisk) return 'snowflake';
+  if (day.precipitationMm >= 1) return 'weather-rainy';
+  return 'thermometer';
+}
+
+function HeroFigure({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}): JSX.Element {
+  return (
+    <View style={styles.heroFigure}>
+      <View style={styles.heroFigureLabelRow}>
+        <Icon name={icon} size={14} color="rgba(255, 255, 255, 0.8)" />
+        <Text style={styles.heroFigureLabel}>{label}</Text>
+      </View>
+      {/* Sin truncar: una cifra cortada es peor que una que salta de línea. */}
+      <Text style={styles.heroFigureValue}>{value}</Text>
+    </View>
+  );
+}
+
+function LinkRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon?: IconName;
+  label: string;
+  onPress: () => void;
+}): JSX.Element {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
+    >
+      {icon ? <Icon name={icon} size={18} color={theme.colors.primary} /> : null}
+      <Text style={styles.linkText}>{label}</Text>
+      <Icon name="chevron-right" size={18} color={theme.colors.primary} />
+    </Pressable>
+  );
+}
+
+// ---------- Styles ----------
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { marginBottom: theme.spacing.md },
+  scroll: { paddingBottom: theme.spacing.xl },
+  flex: { flex: 1 },
+  pressed: { opacity: 0.75 },
+  section: { marginBottom: theme.spacing.lg },
+
+  header: { marginBottom: theme.spacing.lg },
   title: {
     ...typography.display,
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
     color: theme.colors.text,
   },
-  subtitle: {
-    ...typography.body,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
-  sectionLabel: {
-    ...typography.label,
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '700',
-    marginBottom: theme.spacing.xs,
-  },
-  sectionLabelSpaced: {
-    marginTop: theme.spacing.md,
-  },
-  presetRow: {
-    paddingBottom: theme.spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
-    marginRight: theme.spacing.xs,
-    fontSize: 13,
-    overflow: 'hidden',
-  },
-  chipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-    color: theme.colors.primaryText,
-  },
-  card: {
-    marginBottom: theme.spacing.sm,
-  },
-  cardTitle: {
-    ...typography.headline,
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  cardSubtitle: {
-    ...typography.body,
-    color: theme.colors.textMuted,
-    marginTop: theme.spacing.xs,
-  },
-  summaryRow: {
+  roleChip: {
     flexDirection: 'row',
-  },
-  summaryCol: {
-    flex: 1,
-  },
-  summaryLabel: {
-    ...typography.label,
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  summaryValue: {
-    ...typography.headline,
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  summaryNote: {
-    color: theme.colors.textMuted,
-    fontSize: 11,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
     marginTop: theme.spacing.sm,
-    fontStyle: 'italic',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: theme.radius.pill,
+    backgroundColor: 'rgba(62, 82, 25, 0.10)',
   },
-  campanaCard: {
-    marginBottom: theme.spacing.xs,
-  },
-  campanaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  campanaName: {
-    ...typography.headline,
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  campanaMeta: {
-    color: theme.colors.textMuted,
+  roleText: {
+    ...typography.label,
     fontSize: 12,
-    marginTop: 2,
-  },
-  campanaBalance: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginLeft: theme.spacing.sm,
-  },
-  moreHint: {
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    fontStyle: 'italic',
-    marginTop: theme.spacing.xs,
-    marginBottom: theme.spacing.sm,
-    textAlign: 'center',
-  },
-  rentabilidadLink: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
-    marginTop: theme.spacing.xs,
-  },
-  rentabilidadLinkText: {
     color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
   },
-  muted: {
-    color: theme.colors.textMuted,
-    fontSize: 13,
-  },
-  edit: {
-    marginTop: theme.spacing.lg,
-  },
-  delete: {
-    marginTop: theme.spacing.sm,
-    borderColor: theme.colors.danger,
-  },
-  error: {
-    color: theme.colors.danger,
-    marginTop: theme.spacing.sm,
-  },
-  // Yellow plazo-de-seguridad summary banner — same palette as the
-  // per-parcela banner so the two read as one alert system across screens.
+
+  // Yellow plazo-de-seguridad banner — same palette as the per-parcela
+  // banner so both read as one alert system (No-Line: no border).
   plazoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
     backgroundColor: '#FEF6D8',
-    borderColor: '#E0B84A',
-    borderWidth: 1,
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
-  plazoBannerPressed: {
-    opacity: 0.85,
-  },
   plazoBannerTitle: {
+    ...typography.bodyMedium,
     color: '#5A4200',
-    fontWeight: '700',
     fontSize: 14,
   },
   plazoBannerBody: {
+    ...typography.body,
     color: '#7A5C18',
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 2,
   },
-  weatherLink: {
-    alignSelf: 'flex-end',
-    marginTop: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
-    paddingVertical: 4,
+
+  map: {
+    borderRadius: theme.radius.md,
+    overflow: 'hidden',
+    marginBottom: theme.spacing.lg,
   },
-  weatherLinkText: {
-    color: theme.colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+
   forecastLoading: {
     paddingVertical: theme.spacing.md,
     alignItems: 'center',
   },
   forecastRow: {
-    paddingBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
   },
   forecastCard: {
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-    marginRight: theme.spacing.xs,
-    minWidth: 72,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+    minWidth: 76,
   },
   forecastDay: {
-    fontWeight: '700',
-    fontSize: 12,
+    ...typography.headline,
+    fontSize: 13,
     color: theme.colors.text,
     textTransform: 'uppercase',
   },
   forecastDate: {
+    ...typography.body,
     fontSize: 11,
     color: theme.colors.textMuted,
+  },
+  forecastIcon: { marginVertical: theme.spacing.sm },
+  forecastTemp: {
+    ...typography.headline,
+    fontSize: 14,
+    color: theme.colors.text,
     marginBottom: 4,
   },
-  forecastFrost: {
-    fontSize: 14,
-    marginBottom: 2,
-    color: '#4A90D9',
-  },
-  forecastTemp: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  forecastPrecip: {
-    fontSize: 11,
-    color: theme.colors.primary,
-    marginTop: 2,
-  },
-  forecastWind: {
+  forecastMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  forecastMeta: {
+    ...typography.body,
     fontSize: 11,
     color: theme.colors.textMuted,
   },
   forecastEt0: {
+    ...typography.body,
     fontSize: 10,
     color: theme.colors.textMuted,
     marginTop: 2,
-    fontStyle: 'italic',
+  },
+
+  segmented: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.surfaceLow,
+    borderRadius: theme.radius.pill,
+    padding: 4,
+    marginBottom: theme.spacing.md,
+  },
+  segment: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
+    borderRadius: theme.radius.pill,
+  },
+  segmentSelected: { backgroundColor: theme.colors.primary },
+  segmentText: {
+    ...typography.label,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
+  segmentTextSelected: { color: theme.colors.primaryText },
+
+  panel: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  emptyPanel: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+
+  hero: {
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  heroLabel: {
+    ...typography.label,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 14,
+  },
+  heroValue: {
+    ...typography.display,
+    color: theme.colors.primaryText,
+    fontSize: 36,
+    marginTop: theme.spacing.xs,
+  },
+  heroSplit: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+  },
+  heroFigure: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: theme.radius.sm,
+    padding: theme.spacing.sm,
+  },
+  heroFigureLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  heroFigureLabel: {
+    ...typography.label,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+  },
+  heroFigureValue: {
+    ...typography.headline,
+    color: theme.colors.primaryText,
+    fontSize: 15,
+    marginTop: 2,
+  },
+  heroHint: {
+    ...typography.body,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 12,
+    marginTop: theme.spacing.sm,
+  },
+
+  campanaBalance: {
+    ...typography.headline,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  moreHint: {
+    ...typography.body,
+    color: theme.colors.textMuted,
+    fontSize: 12,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: theme.spacing.sm,
+  },
+  linkText: {
+    ...typography.bodyMedium,
+    color: theme.colors.primary,
+    fontSize: 14,
+  },
+
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  tile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+  },
+  tileTitle: {
+    ...typography.headline,
+    fontSize: 15,
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+  },
+  tileSubtitle: {
+    ...typography.body,
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+
+  ownerActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+  },
+  ownerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: theme.radius.pill,
+  },
+  editButton: { backgroundColor: 'rgba(62, 82, 25, 0.10)' },
+  deleteButton: { backgroundColor: 'rgba(178, 59, 59, 0.08)' },
+  ownerButtonText: {
+    ...typography.headline,
+    fontSize: 14,
+  },
+
+  muted: {
+    ...typography.body,
+    color: theme.colors.textMuted,
+    fontSize: 13,
+  },
+  error: {
+    color: theme.colors.danger,
+    marginTop: theme.spacing.sm,
   },
 });

@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,8 +12,11 @@ import {
   View,
 } from 'react-native';
 
+import { IconCircle, IconName } from '@/components/IconCircle';
+import { ListRow } from '@/components/ListRow';
 import { OfflineBadge } from '@/components/OfflineBadge';
 import { Screen } from '@/components/Screen';
+import { SectionTitle } from '@/components/SectionTitle';
 import type { MainStackParamList } from '@/navigation/types';
 import { ACTIVIDAD_TYPE_LABELS } from '@/services/actividades.service';
 import { AemetAlert, AlertLevel, weatherService } from '@/services/weather.service';
@@ -341,11 +345,15 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
         {fincas.length > 0 ? (
           <>
             {/* Hero: balance del año */}
-            <View style={styles.hero}>
+            {/* DESIGN.md: CTA/hero gradient primary → primaryContainer at 135°. */}
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primaryContainer]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.hero}
+            >
               <View style={styles.heroTop}>
-                <View style={styles.heroIcon}>
-                  <Icon name="cash-multiple" size={20} color={theme.colors.primaryText} />
-                </View>
+                <IconCircle name="cash-multiple" tone="onDark" size={36} />
                 <Text style={styles.heroLabel}>Balance del año</Text>
               </View>
               {financeAllReported ? (
@@ -368,7 +376,7 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
                   ? 'Gastos por encima de ingresos'
                   : 'Ingresos menos gastos, todas las fincas'}
               </Text>
-            </View>
+            </LinearGradient>
 
             {/* KPI grid */}
             <View style={styles.grid}>
@@ -491,9 +499,7 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
         {/* Empty state guidance */}
         {fincas.length === 0 && !loading ? (
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
-              <Icon name="sprout-outline" size={32} color={theme.colors.primary} />
-            </View>
+            <IconCircle name="sprout-outline" size={64} />
             <Text style={styles.emptyHint}>
               Añade tu primera finca para ver el resumen de tu olivar aquí.
             </Text>
@@ -506,8 +512,6 @@ export function HomeScreen({ navigation }: Props): JSX.Element {
 
 // ---------- Sub-components ----------
 
-type IconName = ComponentProps<typeof Icon>['name'];
-
 const ACTIVIDAD_ICONS: Record<string, IconName> = {
   tratamiento_fitosanitario: 'spray',
   riego: 'water',
@@ -517,24 +521,6 @@ const ACTIVIDAD_ICONS: Record<string, IconName> = {
   siembra: 'seed',
   laboreo: 'tractor',
 };
-
-function SectionTitle({
-  icon,
-  title,
-  tone,
-}: {
-  icon: IconName;
-  title: string;
-  tone?: 'danger';
-}): JSX.Element {
-  const color = tone === 'danger' ? theme.colors.danger : theme.colors.textMuted;
-  return (
-    <View style={styles.sectionTitleRow}>
-      <Icon name={icon} size={16} color={color} />
-      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
-    </View>
-  );
-}
 
 function StatTile({
   icon,
@@ -549,12 +535,9 @@ function StatTile({
   loading?: boolean;
   alert?: boolean;
 }): JSX.Element {
-  const tint = alert ? theme.colors.danger : theme.colors.primary;
   return (
     <View style={styles.tile}>
-      <View style={[styles.iconCircle, { backgroundColor: alert ? DANGER_SOFT : PRIMARY_SOFT }]}>
-        <Icon name={icon} size={20} color={tint} />
-      </View>
+      <IconCircle name={icon} tone={alert ? 'danger' : 'primary'} />
       {loading ? (
         <ActivityIndicator size="small" color={theme.colors.textMuted} style={styles.tileSpinner} />
       ) : (
@@ -599,41 +582,6 @@ function QuickAction({
   );
 }
 
-function ListRow({
-  icon,
-  alert,
-  title,
-  meta,
-  onPress,
-}: {
-  icon: IconName;
-  alert?: boolean;
-  title: string;
-  meta: string;
-  onPress: () => void;
-}): JSX.Element {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}
-    >
-      <View style={[styles.iconCircle, { backgroundColor: alert ? DANGER_SOFT : PRIMARY_SOFT }]}>
-        <Icon name={icon} size={20} color={alert ? theme.colors.danger : theme.colors.primary} />
-      </View>
-      <View style={styles.rowMain}>
-        <Text style={styles.rowPrimary} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.rowMeta} numberOfLines={1}>
-          {meta}
-        </Text>
-      </View>
-      <Icon name="chevron-right" size={22} color={theme.colors.textMuted} />
-    </Pressable>
-  );
-}
-
 function TicketRow({
   ticket,
   fincaName,
@@ -649,7 +597,7 @@ function TicketRow({
   return (
     <ListRow
       icon="receipt-text-clock-outline"
-      alert
+      tone="danger"
       title={`Ticket · ${fincaName}${almazara ? ` · ${almazara}` : ''}`}
       meta={`${statusLabel} · ${ageLabel(ticket.createdAt)}`}
       onPress={onPress}
@@ -673,7 +621,7 @@ function StaleRow({
   return (
     <ListRow
       icon="sprout-outline"
-      alert
+      tone="danger"
       title={`${fincaName} · ${parcela.name}`}
       meta={age}
       onPress={onPress}
@@ -732,7 +680,6 @@ function WeatherAlertRow({ alert }: { alert: AemetAlert }): JSX.Element {
 
 // Tonal tints for icon circles (DESIGN.md: depth through color, not lines).
 const PRIMARY_SOFT = 'rgba(62, 82, 25, 0.10)';
-const DANGER_SOFT = 'rgba(178, 59, 59, 0.10)';
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -770,20 +717,11 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
   },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
-  heroIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radius.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   heroLabel: {
     ...typography.label,
     color: 'rgba(255, 255, 255, 0.85)',
@@ -815,13 +753,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   tileValue: {
     ...typography.display,
@@ -867,38 +798,7 @@ const styles = StyleSheet.create({
   },
 
   section: { marginBottom: theme.spacing.lg },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: theme.spacing.sm,
-  },
-  sectionTitle: {
-    ...typography.headline,
-    fontSize: 16,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-  },
   rowMain: { flex: 1, minWidth: 0 },
-  rowPrimary: {
-    ...typography.bodyMedium,
-    color: theme.colors.text,
-    fontSize: 15,
-  },
-  rowMeta: {
-    ...typography.body,
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
 
   weatherRow: {
     flexDirection: 'row',
@@ -923,19 +823,11 @@ const styles = StyleSheet.create({
   },
 
   empty: { alignItems: 'center', marginTop: theme.spacing.lg },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: theme.radius.pill,
-    backgroundColor: PRIMARY_SOFT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.md,
-  },
   emptyHint: {
     ...typography.body,
     color: theme.colors.textMuted,
     textAlign: 'center',
     fontSize: 14,
+    marginTop: theme.spacing.md,
   },
 });
